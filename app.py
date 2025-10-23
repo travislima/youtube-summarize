@@ -110,6 +110,18 @@ def index():
     return send_from_directory('static', 'index.html')
 
 
+@app.route('/style.css')
+def serve_css():
+    """Serve the CSS file"""
+    return send_from_directory('static', 'style.css')
+
+
+@app.route('/script.js')
+def serve_js():
+    """Serve the JavaScript file"""
+    return send_from_directory('static', 'script.js')
+
+
 @app.route('/api/summarize', methods=['POST'])
 def summarize_video():
     """

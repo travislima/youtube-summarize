@@ -19,6 +19,9 @@ urlInput.addEventListener('keypress', function(e) {
     }
 });
 
+// Add button click listener
+summarizeBtn.addEventListener('click', summarizeVideo);
+
 /**
  * Main function to summarize a YouTube video
  */
