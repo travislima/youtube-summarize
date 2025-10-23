@@ -51,16 +51,45 @@ def get_transcript(video_id):
     Fetch transcript for a YouTube video
     Returns the full transcript text or raises an error
     """
-    try:
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-        transcript_text = ' '.join([entry['text'] for entry in transcript_list])
-        return transcript_text
-    except TranscriptsDisabled:
-        raise Exception("Transcripts are disabled for this video")
-    except NoTranscriptFound:
-        raise Exception("No transcript found for this video")
-    except Exception as e:
-        raise Exception(f"Error fetching transcript: {str(e)}")
+    import time
+
+    # Try multiple times with delays to avoid rate limiting
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            # Try to get transcript with different language codes as fallback
+            try:
+                transcript_list = YouTubeTranscriptApi.get_transcript(
+                    video_id,
+                    languages=['en', 'en-US', 'en-GB']
+                )
+            except:
+                # If specific languages fail, try getting any available transcript
+                transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+                transcript = transcript_list.find_transcript(['en', 'en-US', 'en-GB'])
+                transcript_list = transcript.fetch()
+
+            transcript_text = ' '.join([entry['text'] for entry in transcript_list])
+            return transcript_text
+
+        except TranscriptsDisabled:
+            raise Exception("Transcripts are disabled for this video")
+        except NoTranscriptFound:
+            raise Exception("No transcript found for this video. Please try a video with captions enabled.")
+        except Exception as e:
+            if attempt < max_retries - 1:
+                # Wait before retrying (exponential backoff)
+                time.sleep(2 ** attempt)
+                continue
+            else:
+                # On last attempt, provide helpful error message
+                error_msg = str(e)
+                if "429" in error_msg or "Too Many Requests" in error_msg:
+                    raise Exception("YouTube is temporarily rate-limiting requests. Please try again in a few minutes, or try a different video.")
+                else:
+                    raise Exception(f"Could not fetch transcript: {error_msg[:200]}")
+
+    raise Exception("Failed to fetch transcript after multiple attempts")
 
 
 def summarize_text(text):
