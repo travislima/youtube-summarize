@@ -101,10 +101,20 @@ async function getTranscript(videoId) {
           const captionUrl = englishTrack.baseUrl;
           console.log('Fetching captions from:', captionUrl);
 
-          fetch(captionUrl)
-            .then(response => response.text())
+          // Use fetch with credentials to avoid CORS issues
+          fetch(captionUrl, {
+            method: 'GET',
+            credentials: 'include',
+            mode: 'cors'
+          })
+            .then(response => {
+              console.log('Caption response status:', response.status);
+              console.log('Caption response headers:', response.headers);
+              return response.text();
+            })
             .then(xmlData => {
               console.log('Caption data received, length:', xmlData.length);
+              console.log('Caption data preview:', xmlData.substring(0, 500));
 
               // Parse XML
               const parser = new DOMParser();
@@ -144,12 +154,15 @@ async function getTranscript(videoId) {
             });
 
         } else {
-          reject('No caption data found in page');
+          // Try fallback method: Open transcript panel and scrape it
+          console.log('Trying fallback: opening transcript panel');
+          tryTranscriptPanelMethod(resolve, reject);
         }
 
       } catch (e) {
         console.error('Error extracting from page:', e);
-        reject('Error extracting transcript: ' + e.message);
+        // Try fallback method
+        tryTranscriptPanelMethod(resolve, reject);
       }
 
     } catch (error) {
@@ -157,6 +170,79 @@ async function getTranscript(videoId) {
       reject('Error getting transcript: ' + error.message);
     }
   });
+}
+
+function tryTranscriptPanelMethod(resolve, reject) {
+  // Try to open YouTube's transcript panel and extract text from it
+  try {
+    // Find the "Show transcript" button
+    const buttons = document.querySelectorAll('button');
+    let transcriptButton = null;
+
+    for (const button of buttons) {
+      const ariaLabel = button.getAttribute('aria-label');
+      if (ariaLabel && ariaLabel.toLowerCase().includes('transcript')) {
+        transcriptButton = button;
+        break;
+      }
+    }
+
+    if (!transcriptButton) {
+      reject('Could not find transcript button. This video may not have captions enabled.');
+      return;
+    }
+
+    console.log('Found transcript button, clicking it...');
+
+    // Click the button to open transcript panel
+    transcriptButton.click();
+
+    // Wait for panel to load
+    setTimeout(() => {
+      try {
+        // Find transcript segments in the panel
+        const transcriptPanel = document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]');
+
+        if (!transcriptPanel) {
+          reject('Transcript panel did not open');
+          return;
+        }
+
+        // Extract text from transcript segments
+        const segments = transcriptPanel.querySelectorAll('yt-formatted-string.segment-text');
+
+        if (!segments || segments.length === 0) {
+          reject('No transcript segments found');
+          return;
+        }
+
+        let transcript = '';
+        segments.forEach(segment => {
+          transcript += segment.textContent + ' ';
+        });
+
+        transcript = transcript.trim();
+        console.log('Extracted transcript from panel, length:', transcript.length);
+
+        if (transcript.length < 10) {
+          reject('Transcript too short');
+          return;
+        }
+
+        // Close the panel
+        transcriptButton.click();
+
+        resolve(transcript);
+
+      } catch (e) {
+        console.error('Error extracting from panel:', e);
+        reject('Failed to extract transcript from panel: ' + e.message);
+      }
+    }, 2000); // Wait 2 seconds for panel to load
+
+  } catch (error) {
+    reject('Error in fallback method: ' + error.message);
+  }
 }
 
 async function handleSummarize() {
