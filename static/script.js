@@ -86,7 +86,15 @@ function showError(message) {
 function showResult(data) {
     hideAll();
     summaryContent.textContent = data.summary;
-    videoInfo.textContent = `Video ID: ${data.video_id} | Transcript length: ${data.transcript_length} characters`;
+
+    // Build video info string
+    let infoText = '';
+    if (data.video_title) {
+        infoText += `Video: "${data.video_title}" | `;
+    }
+    infoText += `Video ID: ${data.video_id} | Transcript length: ${data.transcript_length} characters`;
+
+    videoInfo.textContent = infoText;
     resultDiv.classList.remove('hidden');
     summarizeBtn.disabled = false;
 }

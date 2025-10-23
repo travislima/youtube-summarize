@@ -7,6 +7,8 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from groq import Groq
 import os
 import re
@@ -26,6 +28,14 @@ if not groq_api_key:
 else:
     groq_client = Groq(api_key=groq_api_key)
 
+# Initialize YouTube API client
+youtube_api_key = os.getenv('YOUTUBE_API_KEY')
+if not youtube_api_key:
+    print("WARNING: YOUTUBE_API_KEY not found in environment variables!")
+    youtube_client = None
+else:
+    youtube_client = build('youtube', 'v3', developerKey=youtube_api_key)
+
 
 def extract_video_id(url):
     """
@@ -44,6 +54,50 @@ def extract_video_id(url):
             return match.group(1)
 
     return None
+
+
+def verify_video_and_check_captions(video_id):
+    """
+    Use YouTube Data API to verify video exists and check if captions are available
+    Returns: (video_title, has_captions)
+    """
+    if not youtube_client:
+        # If YouTube API not configured, skip verification
+        return None, True
+
+    try:
+        # Get video details
+        request = youtube_client.videos().list(
+            part='snippet,contentDetails',
+            id=video_id
+        )
+        response = request.execute()
+
+        if not response.get('items'):
+            raise Exception("Video not found. Please check the URL.")
+
+        video_info = response['items'][0]
+        video_title = video_info['snippet']['title']
+
+        # Check if captions are available
+        caption_info = video_info['contentDetails'].get('caption', 'false')
+        has_captions = caption_info == 'true'
+
+        return video_title, has_captions
+
+    except HttpError as e:
+        if e.resp.status == 403:
+            raise Exception("YouTube API quota exceeded. Please try again later.")
+        elif e.resp.status == 404:
+            raise Exception("Video not found. Please check the URL.")
+        else:
+            # Don't fail the whole request if API check fails
+            print(f"YouTube API error: {e}")
+            return None, True
+    except Exception as e:
+        # Don't fail the whole request if API check fails
+        print(f"Error verifying video: {e}")
+        return None, True
 
 
 def get_transcript(video_id):
@@ -149,7 +203,7 @@ def summarize_video():
     """
     Main API endpoint to summarize a YouTube video
     Expects JSON: {"url": "youtube_url"}
-    Returns JSON: {"summary": "...", "video_id": "..."}
+    Returns JSON: {"summary": "...", "video_id": "...", "video_title": "..."}
     """
     try:
         data = request.get_json()
@@ -164,6 +218,14 @@ def summarize_video():
         if not video_id:
             return jsonify({'error': 'Invalid YouTube URL'}), 400
 
+        # Verify video exists and check for captions using YouTube API
+        video_title, has_captions = verify_video_and_check_captions(video_id)
+
+        if not has_captions and video_title:
+            return jsonify({
+                'error': f'No captions available for "{video_title}". Please try a video with captions enabled.'
+            }), 400
+
         # Get transcript
         transcript = get_transcript(video_id)
 
@@ -176,6 +238,7 @@ def summarize_video():
         return jsonify({
             'success': True,
             'video_id': video_id,
+            'video_title': video_title or 'Unknown',
             'summary': summary,
             'transcript_length': len(transcript)
         })
@@ -189,7 +252,8 @@ def health():
     """Health check endpoint"""
     return jsonify({
         'status': 'healthy',
-        'groq_configured': groq_client is not None
+        'groq_configured': groq_client is not None,
+        'youtube_api_configured': youtube_client is not None
     })
 
 
