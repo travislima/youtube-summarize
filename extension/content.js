@@ -116,13 +116,20 @@ async function getTranscript(videoId) {
               console.log('Caption data received, length:', xmlData.length);
               console.log('Caption data preview:', xmlData.substring(0, 500));
 
+              if (!xmlData || xmlData.length < 10) {
+                console.log('Empty caption data, trying fallback method...');
+                tryTranscriptPanelMethod(resolve, reject);
+                return;
+              }
+
               // Parse XML
               const parser = new DOMParser();
               const xmlDoc = parser.parseFromString(xmlData, 'text/xml');
               const textElements = xmlDoc.getElementsByTagName('text');
 
               if (textElements.length === 0) {
-                reject('No transcript text found');
+                console.log('No text elements in XML, trying fallback method...');
+                tryTranscriptPanelMethod(resolve, reject);
                 return;
               }
 
@@ -150,7 +157,8 @@ async function getTranscript(videoId) {
             })
             .catch(err => {
               console.error('Error fetching caption URL:', err);
-              reject('Failed to fetch captions: ' + err.message);
+              console.log('Fetch failed, trying fallback method...');
+              tryTranscriptPanelMethod(resolve, reject);
             });
 
         } else {
