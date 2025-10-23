@@ -57,18 +57,11 @@ def get_transcript(video_id):
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            # Try to get transcript with different language codes as fallback
-            try:
-                transcript_list = YouTubeTranscriptApi.get_transcript(
-                    video_id,
-                    languages=['en', 'en-US', 'en-GB']
-                )
-            except:
-                # If specific languages fail, try getting any available transcript
-                transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-                transcript = transcript_list.find_transcript(['en', 'en-US', 'en-GB'])
-                transcript_list = transcript.fetch()
-
+            # Try to get transcript - first try English variants
+            transcript_list = YouTubeTranscriptApi.get_transcript(
+                video_id,
+                languages=['en', 'en-US', 'en-GB', 'a.en']
+            )
             transcript_text = ' '.join([entry['text'] for entry in transcript_list])
             return transcript_text
 
