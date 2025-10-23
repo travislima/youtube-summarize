@@ -1,0 +1,239 @@
+/* YouTube Summarizer Extension Styles */
+
+/* Summarize Button */
+.yt-summarize-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 18px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: 8px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.yt-summarize-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.yt-summarize-button:active {
+  transform: translateY(0);
+}
+
+.yt-summarize-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.yt-summarize-button svg {
+  flex-shrink: 0;
+}
+
+/* Spinner animation */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Summary Modal */
+.yt-summary-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.yt-summary-modal-content {
+  background: white;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.yt-summary-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.yt-summary-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #333;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.yt-summary-close {
+  background: none;
+  border: none;
+  font-size: 32px;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.yt-summary-close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.yt-summary-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.yt-summary-text {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #444;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.yt-summary-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+  text-align: center;
+}
+
+.yt-summary-modal-footer small {
+  color: #888;
+  font-size: 12px;
+}
+
+/* Notifications */
+.yt-summary-notification {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  padding: 16px 24px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10001;
+  animation: slideInRight 0.3s ease;
+  max-width: 400px;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.yt-summary-notification-fade {
+  animation: fadeOut 0.3s ease forwards;
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+}
+
+.yt-summary-notification-error {
+  background: #fee;
+  border-left: 4px solid #c33;
+  color: #c33;
+}
+
+.yt-summary-notification-info {
+  background: #e7f3ff;
+  border-left: 4px solid #667eea;
+  color: #667eea;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .yt-summary-modal-content {
+    background: #282828;
+  }
+
+  .yt-summary-modal-header {
+    border-bottom-color: #404040;
+  }
+
+  .yt-summary-modal-header h2 {
+    color: #fff;
+  }
+
+  .yt-summary-close {
+    color: #aaa;
+  }
+
+  .yt-summary-close:hover {
+    background: #404040;
+    color: #fff;
+  }
+
+  .yt-summary-text {
+    color: #ddd;
+  }
+
+  .yt-summary-modal-footer {
+    border-top-color: #404040;
+  }
+
+  .yt-summary-notification {
+    background: #282828;
+    color: #ddd;
+  }
+}

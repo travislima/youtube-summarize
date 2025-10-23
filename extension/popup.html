@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Summarizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 300px;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        h1 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        p {
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 16px;
+            opacity: 0.95;
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            font-size: 13px;
+        }
+
+        .instructions li {
+            margin: 6px 0;
+        }
+
+        .status {
+            font-size: 12px;
+            opacity: 0.8;
+            text-align: center;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .tip {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-top: 12px;
+        }
+
+        .tip::before {
+            content: "💡 ";
+        }
+    </style>
+</head>
+<body>
+    <h1>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        YouTube Summarizer
+    </h1>
+
+    <p>Get AI-powered summaries of YouTube videos instantly!</p>
+
+    <div class="instructions">
+        <strong>How to use:</strong>
+        <ol>
+            <li>Open any YouTube video</li>
+            <li>Look for the purple "Summarize" button below the video</li>
+            <li>Click it and wait 10-20 seconds</li>
+            <li>Read your AI-generated summary!</li>
+        </ol>
+    </div>
+
+    <div class="tip">
+        Make sure your local backend is running on http://localhost:8000
+    </div>
+
+    <div class="status">
+        YouTube Summarizer v1.0
+    </div>
+</body>
+</html>

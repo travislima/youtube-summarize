@@ -256,6 +256,45 @@ def summarize_video():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/summarize-transcript', methods=['POST'])
+def summarize_transcript():
+    """
+    API endpoint for Chrome extension
+    Accepts transcript text directly (extension fetches it client-side)
+    Expects JSON: {"video_id": "...", "transcript": "..."}
+    Returns JSON: {"summary": "..."}
+    """
+    try:
+        data = request.get_json()
+
+        if not data or 'transcript' not in data:
+            return jsonify({'error': 'No transcript provided'}), 400
+
+        transcript = data['transcript']
+        video_id = data.get('video_id', 'unknown')
+
+        print(f"DEBUG: Received transcript from extension for video {video_id}, length: {len(transcript)}")
+
+        if not transcript or len(transcript) < 10:
+            return jsonify({'error': 'Transcript is too short or empty'}), 400
+
+        # Generate summary
+        summary = summarize_text(transcript)
+
+        print(f"DEBUG: Summary generated successfully")
+
+        return jsonify({
+            'success': True,
+            'video_id': video_id,
+            'summary': summary,
+            'transcript_length': len(transcript)
+        })
+
+    except Exception as e:
+        print(f"DEBUG: Error in summarize_transcript: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/health')
 def health():
     """Health check endpoint"""
