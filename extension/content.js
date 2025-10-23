@@ -64,6 +64,7 @@ async function getTranscript(videoId) {
     try {
       // Method 1: Try to get from timedtext
       const video = document.querySelector('video');
+      console.log('Video element found:', !!video);
       if (!video) {
         reject('Video element not found');
         return;
@@ -72,10 +73,17 @@ async function getTranscript(videoId) {
       // Fetch transcript using YouTube's timedtext API
       const lang = 'en';
       const url = `https://www.youtube.com/api/timedtext?v=${videoId}&lang=${lang}`;
+      console.log('Fetching transcript from:', url);
 
       fetch(url)
-        .then(response => response.text())
+        .then(response => {
+          console.log('Transcript response status:', response.status);
+          console.log('Transcript response ok:', response.ok);
+          return response.text();
+        })
         .then(data => {
+          console.log('Transcript data length:', data.length);
+          console.log('Transcript data preview:', data.substring(0, 200));
           if (!data || data.length < 10) {
             reject('No transcript available for this video');
             return;
@@ -161,8 +169,20 @@ async function handleSummarize() {
     showSummaryModal(data.summary, videoId);
 
   } catch (error) {
-    console.error('Error:', error);
-    showNotification('Error: ' + error.message, 'error');
+    console.error('Full error object:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+
+    let errorMsg = 'Unknown error occurred';
+    if (error.message) {
+      errorMsg = error.message;
+    } else if (typeof error === 'string') {
+      errorMsg = error;
+    } else {
+      errorMsg = String(error);
+    }
+
+    showNotification('Error: ' + errorMsg, 'error');
   } finally {
     // Reset button
     summaryButton.disabled = false;
