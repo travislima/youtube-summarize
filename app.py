@@ -176,7 +176,7 @@ Please keep the summary clear and concise."""
                     "content": prompt,
                 }
             ],
-            model="llama-3.1-70b-versatile",  # Free tier model
+            model="llama-3.3-70b-versatile",  # Updated model (3.1 was decommissioned)
             temperature=0.5,
             max_tokens=1000,
         )
