@@ -105,16 +105,22 @@ def get_transcript(video_id):
     Fetch transcript for a YouTube video using youtube-transcript-api
     Returns the full transcript text or raises an error
     """
+    print(f"DEBUG: Attempting to fetch transcript for video ID: {video_id}")
+
     try:
         # Get the transcript - try English first, then any available language
         try:
+            print(f"DEBUG: Trying English transcript...")
             transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['en'])
-        except:
+        except Exception as e:
+            print(f"DEBUG: English failed ({e}), trying any available language...")
             # If English not available, get any available transcript
             transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
 
         # Combine all transcript entries into a single text
         transcript_text = ' '.join([entry['text'] for entry in transcript_list])
+
+        print(f"DEBUG: Successfully fetched transcript, length: {len(transcript_text)} characters")
 
         if not transcript_text or len(transcript_text) < 10:
             raise Exception("Transcript is too short or empty")
@@ -122,14 +128,20 @@ def get_transcript(video_id):
         return transcript_text
 
     except TranscriptsDisabled:
+        print(f"DEBUG: Transcripts disabled for video {video_id}")
         raise Exception("Transcripts are disabled for this video")
     except NoTranscriptFound:
+        print(f"DEBUG: No transcript found for video {video_id}")
         raise Exception("No transcript found for this video. Please try a video with captions enabled.")
     except Exception as e:
+        print(f"DEBUG: Error type: {type(e).__name__}")
+        print(f"DEBUG: Error details: {str(e)}")
         error_msg = str(e)
         if "Transcript" in error_msg or "transcript" in error_msg:
             # Re-raise transcript-specific errors
             raise
+        elif "no element found" in error_msg.lower() or "xml" in error_msg.lower():
+            raise Exception("YouTube blocked the transcript request. This video may not have captions, or YouTube is blocking automated access. Try a different video.")
         else:
             raise Exception(f"Error fetching transcript: {error_msg}")
 
@@ -210,11 +222,13 @@ def summarize_video():
 
         # Extract video ID
         video_id = extract_video_id(url)
+        print(f"DEBUG: Extracted video ID: {video_id} from URL: {url}")
         if not video_id:
             return jsonify({'error': 'Invalid YouTube URL'}), 400
 
         # Verify video exists and check for captions using YouTube API
         video_title, has_captions = verify_video_and_check_captions(video_id)
+        print(f"DEBUG: Video title: {video_title}, has_captions: {has_captions}")
 
         if not has_captions and video_title:
             return jsonify({
