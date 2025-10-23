@@ -102,41 +102,36 @@ def verify_video_and_check_captions(video_id):
 
 def get_transcript(video_id):
     """
-    Fetch transcript for a YouTube video
+    Fetch transcript for a YouTube video using youtube-transcript-api
     Returns the full transcript text or raises an error
     """
-    import time
-
-    # Try multiple times with delays to avoid rate limiting
-    max_retries = 3
-    for attempt in range(max_retries):
+    try:
+        # Get the transcript - try English first, then any available language
         try:
-            # Try to get transcript - first try English variants
-            transcript_list = YouTubeTranscriptApi.get_transcript(
-                video_id,
-                languages=['en', 'en-US', 'en-GB', 'a.en']
-            )
-            transcript_text = ' '.join([entry['text'] for entry in transcript_list])
-            return transcript_text
+            transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['en'])
+        except:
+            # If English not available, get any available transcript
+            transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
 
-        except TranscriptsDisabled:
-            raise Exception("Transcripts are disabled for this video")
-        except NoTranscriptFound:
-            raise Exception("No transcript found for this video. Please try a video with captions enabled.")
-        except Exception as e:
-            if attempt < max_retries - 1:
-                # Wait before retrying (exponential backoff)
-                time.sleep(2 ** attempt)
-                continue
-            else:
-                # On last attempt, provide helpful error message
-                error_msg = str(e)
-                if "429" in error_msg or "Too Many Requests" in error_msg:
-                    raise Exception("YouTube is temporarily rate-limiting requests. Please try again in a few minutes, or try a different video.")
-                else:
-                    raise Exception(f"Could not fetch transcript: {error_msg[:200]}")
+        # Combine all transcript entries into a single text
+        transcript_text = ' '.join([entry['text'] for entry in transcript_list])
 
-    raise Exception("Failed to fetch transcript after multiple attempts")
+        if not transcript_text or len(transcript_text) < 10:
+            raise Exception("Transcript is too short or empty")
+
+        return transcript_text
+
+    except TranscriptsDisabled:
+        raise Exception("Transcripts are disabled for this video")
+    except NoTranscriptFound:
+        raise Exception("No transcript found for this video. Please try a video with captions enabled.")
+    except Exception as e:
+        error_msg = str(e)
+        if "Transcript" in error_msg or "transcript" in error_msg:
+            # Re-raise transcript-specific errors
+            raise
+        else:
+            raise Exception(f"Error fetching transcript: {error_msg}")
 
 
 def summarize_text(text):
@@ -250,10 +245,15 @@ def summarize_video():
 @app.route('/health')
 def health():
     """Health check endpoint"""
+    # Check if YouTubeTranscriptApi has the get_transcript method
+    has_transcript_method = hasattr(YouTubeTranscriptApi, 'get_transcript')
+
     return jsonify({
         'status': 'healthy',
         'groq_configured': groq_client is not None,
-        'youtube_api_configured': youtube_client is not None
+        'youtube_api_configured': youtube_client is not None,
+        'transcript_api_has_method': has_transcript_method,
+        'transcript_api_type': str(type(YouTubeTranscriptApi))
     })
 
 
