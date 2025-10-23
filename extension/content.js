@@ -60,65 +60,101 @@ function createSummarizeButton() {
 
 async function getTranscript(videoId) {
   return new Promise((resolve, reject) => {
-    // Try to get transcript from YouTube's player
     try {
-      // Method 1: Try to get from timedtext
-      const video = document.querySelector('video');
-      console.log('Video element found:', !!video);
-      if (!video) {
-        reject('Video element not found');
-        return;
-      }
+      console.log('Attempting to get transcript for video:', videoId);
 
-      // Fetch transcript using YouTube's timedtext API
-      const lang = 'en';
-      const url = `https://www.youtube.com/api/timedtext?v=${videoId}&lang=${lang}`;
-      console.log('Fetching transcript from:', url);
+      // Method 1: Try to extract from ytInitialPlayerResponse (embedded in page)
+      try {
+        // YouTube embeds data in the page source
+        const scripts = document.querySelectorAll('script');
+        let playerResponse = null;
 
-      fetch(url)
-        .then(response => {
-          console.log('Transcript response status:', response.status);
-          console.log('Transcript response ok:', response.ok);
-          return response.text();
-        })
-        .then(data => {
-          console.log('Transcript data length:', data.length);
-          console.log('Transcript data preview:', data.substring(0, 200));
-          if (!data || data.length < 10) {
-            reject('No transcript available for this video');
-            return;
-          }
-
-          // Parse the XML response
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(data, 'text/xml');
-          const textElements = xmlDoc.getElementsByTagName('text');
-
-          if (textElements.length === 0) {
-            reject('No transcript found');
-            return;
-          }
-
-          // Extract text content
-          let transcript = '';
-          for (let i = 0; i < textElements.length; i++) {
-            const text = textElements[i].textContent;
-            if (text) {
-              // Decode HTML entities
-              const temp = document.createElement('textarea');
-              temp.innerHTML = text;
-              transcript += temp.value + ' ';
+        for (const script of scripts) {
+          const text = script.textContent;
+          if (text.includes('ytInitialPlayerResponse')) {
+            // Extract the JSON object
+            const match = text.match(/var ytInitialPlayerResponse = ({.+?});/);
+            if (match) {
+              playerResponse = JSON.parse(match[1]);
+              console.log('Found ytInitialPlayerResponse');
+              break;
             }
           }
+        }
 
-          resolve(transcript.trim());
-        })
-        .catch(err => {
-          reject('Failed to fetch transcript: ' + err.message);
-        });
+        if (playerResponse && playerResponse.captions) {
+          const captionTracks = playerResponse.captions.playerCaptionsTracklistRenderer?.captionTracks;
+
+          if (!captionTracks || captionTracks.length === 0) {
+            reject('No captions available for this video');
+            return;
+          }
+
+          // Find English caption track
+          const englishTrack = captionTracks.find(track =>
+            track.languageCode === 'en' || track.languageCode.startsWith('en')
+          ) || captionTracks[0]; // Fallback to first available
+
+          console.log('Found caption track:', englishTrack.name.simpleText);
+
+          // Fetch the caption data
+          const captionUrl = englishTrack.baseUrl;
+          console.log('Fetching captions from:', captionUrl);
+
+          fetch(captionUrl)
+            .then(response => response.text())
+            .then(xmlData => {
+              console.log('Caption data received, length:', xmlData.length);
+
+              // Parse XML
+              const parser = new DOMParser();
+              const xmlDoc = parser.parseFromString(xmlData, 'text/xml');
+              const textElements = xmlDoc.getElementsByTagName('text');
+
+              if (textElements.length === 0) {
+                reject('No transcript text found');
+                return;
+              }
+
+              // Extract text content
+              let transcript = '';
+              for (let i = 0; i < textElements.length; i++) {
+                const text = textElements[i].textContent;
+                if (text) {
+                  // Decode HTML entities
+                  const temp = document.createElement('textarea');
+                  temp.innerHTML = text;
+                  transcript += temp.value + ' ';
+                }
+              }
+
+              transcript = transcript.trim();
+              console.log('Extracted transcript length:', transcript.length);
+
+              if (transcript.length < 10) {
+                reject('Transcript too short');
+                return;
+              }
+
+              resolve(transcript);
+            })
+            .catch(err => {
+              console.error('Error fetching caption URL:', err);
+              reject('Failed to fetch captions: ' + err.message);
+            });
+
+        } else {
+          reject('No caption data found in page');
+        }
+
+      } catch (e) {
+        console.error('Error extracting from page:', e);
+        reject('Error extracting transcript: ' + e.message);
+      }
 
     } catch (error) {
-      reject('Error accessing transcript: ' + error.message);
+      console.error('Error in getTranscript:', error);
+      reject('Error getting transcript: ' + error.message);
     }
   });
 }
