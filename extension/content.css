@@ -178,7 +178,7 @@
 }
 
 .yt-summary-text strong {
-  color: #333;
+  color: #1a1a1a;
   font-weight: 600;
 }
 
@@ -270,6 +270,14 @@
 
   .yt-summary-text {
     color: #ddd;
+  }
+
+  .yt-summary-text strong {
+    color: #fff;
+  }
+
+  .yt-summary-text .summary-header {
+    color: #8b9ef9;
   }
 
   .yt-summary-modal-footer {

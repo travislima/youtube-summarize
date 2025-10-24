@@ -156,31 +156,31 @@ def summarize_text(text):
 
     try:
         # Create the prompt for summarization
-        prompt = f"""You are a professional content summarizer. Analyze this YouTube video transcript and create a well-structured summary.
+        prompt = f"""You are a professional content summarizer. Create a concise, actionable summary of this video.
 
-FORMAT YOUR RESPONSE EXACTLY AS SHOWN BELOW (use ## for headers, * for bullets, **bold** for emphasis):
+FORMAT YOUR RESPONSE EXACTLY AS SHOWN:
 
 ## Overview
-[2-3 sentences explaining what this video is about and its main purpose]
+[Write 2-3 sentences explaining what this video covers and who it's for. Write naturally - say "In this video..." or "This video explains..." NOT "This transcript discusses..." Be conversational and direct.]
 
 ## Key Points
-* **First point or tip**: Brief explanation (1-2 sentences)
-* **Second point or tip**: Brief explanation
-* **Third point or tip**: Brief explanation
-[If the video mentions "10 tips" or "5 ways to...", LIST ALL OF THEM - don't summarize, include each one]
+* **Key concept 1**: One clear sentence explaining it
+* **Key concept 2**: One clear sentence explaining it
+* **Key concept 3**: One clear sentence explaining it
+[If the video lists specific items like "10 tips" or "5 strategies", LIST EVERY SINGLE ONE with a brief explanation]
 
 ## Main Takeaways
-* Most important conclusion or action (1 sentence)
-* Second key takeaway (1 sentence)
-* Third key takeaway (1 sentence)
+* [Most important actionable insight - what should viewer remember or do?]
+* [Second key insight - be specific and practical]
+* [Third key insight - focus on value]
 
 CRITICAL RULES:
-- Start each section with ## followed by the section name
-- Use * at the start of each bullet point
-- Use **bold** around key terms in bullets
-- If video lists specific numbered items (5 tips, 10 ways, etc), include ALL of them
-- Be concise but comprehensive
-- Make it scannable and actionable
+- Write naturally, as if explaining to a friend
+- DON'T say "the transcript discusses" or "the speaker mentions" - just state the points directly
+- Use ## for section headers, * for bullets, **bold** for key terms
+- Be concise - one sentence per bullet point
+- If video has numbered items (tips, ways, steps), include ALL of them
+- Focus on actionable insights, not just descriptions
 
 Transcript:
 {text[:6000]}"""
