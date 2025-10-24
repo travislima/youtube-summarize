@@ -212,10 +212,10 @@ function tryTranscriptPanelMethod(resolve, reject) {
     // Click the button to open transcript panel
     transcriptButton.click();
 
-    // Wait for panel to load
+    // Wait for panel to load - increased to 3 seconds for slower connections
     setTimeout(() => {
       try {
-        // Find transcript segments in the panel
+        // Find transcript segments in the panel - try multiple selectors
         const transcriptPanel = document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]');
 
         if (!transcriptPanel) {
@@ -223,24 +223,39 @@ function tryTranscriptPanelMethod(resolve, reject) {
           return;
         }
 
-        // Extract text from transcript segments
-        const segments = transcriptPanel.querySelectorAll('yt-formatted-string.segment-text');
+        // Try multiple selectors for transcript segments (YouTube changes these)
+        let segments = transcriptPanel.querySelectorAll('yt-formatted-string.segment-text');
 
         if (!segments || segments.length === 0) {
-          reject('No transcript segments found');
+          // Try alternative selector
+          segments = transcriptPanel.querySelectorAll('.segment-text');
+        }
+
+        if (!segments || segments.length === 0) {
+          // Try finding any text content in transcript items
+          segments = transcriptPanel.querySelectorAll('ytd-transcript-segment-renderer');
+        }
+
+        if (!segments || segments.length === 0) {
+          console.error('Could not find transcript segments. Panel HTML:', transcriptPanel.innerHTML.substring(0, 500));
+          reject('No transcript segments found. Try clicking the transcript button manually first.');
           return;
         }
 
         let transcript = '';
         segments.forEach(segment => {
-          transcript += segment.textContent + ' ';
+          // Try to get text content from various possible structures
+          const text = segment.textContent || segment.innerText;
+          if (text) {
+            transcript += text.trim() + ' ';
+          }
         });
 
         transcript = transcript.trim();
         console.log('Extracted transcript from panel, length:', transcript.length);
 
         if (transcript.length < 10) {
-          reject('Transcript too short');
+          reject('Transcript too short or extraction failed');
           return;
         }
 
@@ -253,7 +268,7 @@ function tryTranscriptPanelMethod(resolve, reject) {
         console.error('Error extracting from panel:', e);
         reject('Failed to extract transcript from panel: ' + e.message);
       }
-    }, 2000); // Wait 2 seconds for panel to load
+    }, 3000); // Wait 3 seconds for panel to load
 
   } catch (error) {
     reject('Error in fallback method: ' + error.message);
