@@ -377,7 +377,7 @@ function showSummaryModal(summary, videoId) {
   modal.innerHTML = `
     <div class="yt-summary-modal-content">
       <div class="yt-summary-modal-header">
-        <h2>📝 Video Summary</h2>
+        <h2>Video Summary</h2>
         <button class="yt-summary-close">&times;</button>
       </div>
       <div class="yt-summary-modal-body">
