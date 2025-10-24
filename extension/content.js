@@ -306,12 +306,11 @@ async function handleSummarize() {
     showSummaryModal(data.summary, videoId);
 
   } catch (error) {
-    console.error('Full error object:', error);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
+    // Handle both Error objects and string rejections
+    console.error('Summarization error:', error);
 
     let errorMsg = 'Unknown error occurred';
-    if (error.message) {
+    if (error instanceof Error) {
       errorMsg = error.message;
     } else if (typeof error === 'string') {
       errorMsg = error;
