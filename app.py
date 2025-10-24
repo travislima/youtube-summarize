@@ -158,32 +158,32 @@ def summarize_text(text):
         # Create the prompt for summarization
         prompt = f"""You are a professional content summarizer. Analyze this YouTube video transcript and create a well-structured summary.
 
-FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+FORMAT YOUR RESPONSE EXACTLY AS SHOWN BELOW (use ## for headers, * for bullets, **bold** for emphasis):
 
 ## Overview
-[2-3 sentences explaining what this video is about and who it's for]
+[2-3 sentences explaining what this video is about and its main purpose]
 
 ## Key Points
-[List the main points, tips, or topics discussed. If the video mentions "10 tips" or "5 ways", LIST ALL OF THEM with brief explanations. Use bullet points with markdown:]
-
-• **Point 1**: Brief explanation
-• **Point 2**: Brief explanation
-[Continue for all main points]
+* **First point or tip**: Brief explanation (1-2 sentences)
+* **Second point or tip**: Brief explanation
+* **Third point or tip**: Brief explanation
+[If the video mentions "10 tips" or "5 ways to...", LIST ALL OF THEM - don't summarize, include each one]
 
 ## Main Takeaways
-[2-3 bullet points of the most important conclusions or action items]
+* Most important conclusion or action (1 sentence)
+* Second key takeaway (1 sentence)
+* Third key takeaway (1 sentence)
 
-IMPORTANT RULES:
-- Be comprehensive but concise
-- If video lists specific items (like "10 tips"), include ALL of them
-- Use proper markdown formatting with headers (##) and bold (**text**)
-- Make it scannable and easy to read
-- Focus on valuable, actionable information
+CRITICAL RULES:
+- Start each section with ## followed by the section name
+- Use * at the start of each bullet point
+- Use **bold** around key terms in bullets
+- If video lists specific numbered items (5 tips, 10 ways, etc), include ALL of them
+- Be concise but comprehensive
+- Make it scannable and actionable
 
 Transcript:
-{text[:6000]}
-
-Remember: Use markdown formatting with ## for headers, • for bullets, and **bold** for emphasis."""
+{text[:6000]}"""
 
         # Call Groq API
         chat_completion = groq_client.chat.completions.create(

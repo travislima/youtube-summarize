@@ -326,29 +326,36 @@ async function handleSummarize() {
 }
 
 function convertMarkdownToHTML(markdown) {
-  // Simple markdown to HTML converter
+  // Enhanced markdown to HTML converter
   let html = markdown;
 
-  // Convert headers (## Header)
+  // Convert headers (## Header or **Header**:)
   html = html.replace(/^## (.+)$/gm, '<h3 class="summary-header">$1</h3>');
 
-  // Convert bold (**text**)
+  // Also handle **Header**: style (like the AI is currently outputting)
+  html = html.replace(/^\*\*(.+?)\*\*:/gm, '<h3 class="summary-header">$1</h3>');
+
+  // Convert bold (**text**) - do this after headers
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+  // Convert asterisk bullet points (* text)
+  html = html.replace(/^\* (.+)$/gm, '<li>$1</li>');
 
   // Convert bullet points (• text or - text)
   html = html.replace(/^[•\-] (.+)$/gm, '<li>$1</li>');
 
   // Wrap consecutive <li> in <ul>
-  html = html.replace(/(<li>.*<\/li>\s*)+/gs, (match) => `<ul>${match}</ul>`);
+  html = html.replace(/(<li>.*?<\/li>\s*)+/gs, (match) => `<ul>${match}</ul>`);
 
-  // Convert line breaks
-  html = html.replace(/\n\n/g, '</p><p>');
-  html = html.replace(/\n/g, '<br>');
-
-  // Wrap in paragraph if not already wrapped
-  if (!html.startsWith('<')) {
-    html = '<p>' + html + '</p>';
-  }
+  // Convert double line breaks to paragraph breaks
+  html = html.split('\n\n').map(para => {
+    // Don't wrap headers or lists in <p>
+    if (para.includes('<h3') || para.includes('<ul>') || para.includes('<li>')) {
+      return para;
+    }
+    // Wrap regular text in <p>
+    return '<p>' + para.replace(/\n/g, '<br>') + '</p>';
+  }).join('');
 
   return html;
 }
