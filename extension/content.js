@@ -325,12 +325,43 @@ async function handleSummarize() {
   }
 }
 
+function convertMarkdownToHTML(markdown) {
+  // Simple markdown to HTML converter
+  let html = markdown;
+
+  // Convert headers (## Header)
+  html = html.replace(/^## (.+)$/gm, '<h3 class="summary-header">$1</h3>');
+
+  // Convert bold (**text**)
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+  // Convert bullet points (• text or - text)
+  html = html.replace(/^[•\-] (.+)$/gm, '<li>$1</li>');
+
+  // Wrap consecutive <li> in <ul>
+  html = html.replace(/(<li>.*<\/li>\s*)+/gs, (match) => `<ul>${match}</ul>`);
+
+  // Convert line breaks
+  html = html.replace(/\n\n/g, '</p><p>');
+  html = html.replace(/\n/g, '<br>');
+
+  // Wrap in paragraph if not already wrapped
+  if (!html.startsWith('<')) {
+    html = '<p>' + html + '</p>';
+  }
+
+  return html;
+}
+
 function showSummaryModal(summary, videoId) {
   // Remove existing modal if any
   const existingModal = document.getElementById('yt-summary-modal');
   if (existingModal) {
     existingModal.remove();
   }
+
+  // Convert markdown to HTML
+  const formattedSummary = convertMarkdownToHTML(summary);
 
   // Create modal
   const modal = document.createElement('div');
@@ -339,11 +370,11 @@ function showSummaryModal(summary, videoId) {
   modal.innerHTML = `
     <div class="yt-summary-modal-content">
       <div class="yt-summary-modal-header">
-        <h2>Video Summary</h2>
+        <h2>📝 Video Summary</h2>
         <button class="yt-summary-close">&times;</button>
       </div>
       <div class="yt-summary-modal-body">
-        <p class="yt-summary-text">${summary.replace(/\n/g, '<br>')}</p>
+        <div class="yt-summary-text">${formattedSummary}</div>
       </div>
       <div class="yt-summary-modal-footer">
         <small>Video ID: ${videoId}</small>

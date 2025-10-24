@@ -138,8 +138,52 @@
   font-size: 15px;
   line-height: 1.8;
   color: #444;
-  white-space: pre-wrap;
   margin: 0;
+}
+
+/* Formatted summary styles */
+.yt-summary-text .summary-header {
+  font-size: 18px;
+  font-weight: 600;
+  color: #667eea;
+  margin-top: 20px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e7f3ff;
+}
+
+.yt-summary-text .summary-header:first-child {
+  margin-top: 0;
+}
+
+.yt-summary-text ul {
+  margin: 12px 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.yt-summary-text li {
+  margin: 8px 0;
+  padding-left: 24px;
+  position: relative;
+}
+
+.yt-summary-text li::before {
+  content: "•";
+  position: absolute;
+  left: 8px;
+  color: #667eea;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.yt-summary-text strong {
+  color: #333;
+  font-weight: 600;
+}
+
+.yt-summary-text p {
+  margin: 12px 0;
 }
 
 .yt-summary-modal-footer {

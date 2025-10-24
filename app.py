@@ -149,24 +149,41 @@ def get_transcript(video_id):
 def summarize_text(text):
     """
     Summarize text using Groq AI (Llama model)
-    Returns a concise summary with main talking points
+    Returns a concise, well-formatted summary with main talking points
     """
     if not groq_client:
         raise Exception("Groq API key not configured")
 
     try:
         # Create the prompt for summarization
-        prompt = f"""Please analyze this YouTube video transcript and provide a concise summary.
+        prompt = f"""You are a professional content summarizer. Analyze this YouTube video transcript and create a well-structured summary.
 
-Include:
-1. Main topic/theme (2-3 sentences)
-2. Key talking points (3-5 bullet points)
-3. Important takeaways or conclusions
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+
+## Overview
+[2-3 sentences explaining what this video is about and who it's for]
+
+## Key Points
+[List the main points, tips, or topics discussed. If the video mentions "10 tips" or "5 ways", LIST ALL OF THEM with brief explanations. Use bullet points with markdown:]
+
+• **Point 1**: Brief explanation
+• **Point 2**: Brief explanation
+[Continue for all main points]
+
+## Main Takeaways
+[2-3 bullet points of the most important conclusions or action items]
+
+IMPORTANT RULES:
+- Be comprehensive but concise
+- If video lists specific items (like "10 tips"), include ALL of them
+- Use proper markdown formatting with headers (##) and bold (**text**)
+- Make it scannable and easy to read
+- Focus on valuable, actionable information
 
 Transcript:
-{text[:4000]}  # Limit to avoid token limits
+{text[:6000]}
 
-Please keep the summary clear and concise."""
+Remember: Use markdown formatting with ## for headers, • for bullets, and **bold** for emphasis."""
 
         # Call Groq API
         chat_completion = groq_client.chat.completions.create(
@@ -178,7 +195,7 @@ Please keep the summary clear and concise."""
             ],
             model="llama-3.3-70b-versatile",  # Updated model (3.1 was decommissioned)
             temperature=0.5,
-            max_tokens=1000,
+            max_tokens=1500,  # Increased for more detailed summaries
         )
 
         return chat_completion.choices[0].message.content
