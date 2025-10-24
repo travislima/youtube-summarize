@@ -209,16 +209,25 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
       return;
     }
 
-    // Hide all engagement panels before clicking to make it invisible
+    // Move panels off-screen instead of hiding (so content still renders)
     const allPanels = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
+    const originalStyles = [];
+
     allPanels.forEach(panel => {
-      panel.style.setProperty('display', 'none', 'important');
+      originalStyles.push({
+        position: panel.style.position,
+        left: panel.style.left,
+        visibility: panel.style.visibility
+      });
+      panel.style.setProperty('position', 'fixed', 'important');
+      panel.style.setProperty('left', '-9999px', 'important');
+      panel.style.setProperty('visibility', 'hidden', 'important');
     });
 
-    // Click to load the transcript data (will load but stay hidden)
+    // Click to load the transcript data (will load but stay off-screen)
     transcriptButton.click();
 
-    // Wait for panel to load
+    // Wait for panel to load - increased to 2.5s for reliability
     setTimeout(() => {
       try {
         const transcriptPanel = document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]');
@@ -258,10 +267,14 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
         transcript = transcript.trim();
         console.log('Extracted transcript invisibly, length:', transcript.length);
 
-        // Restore panel visibility and close it
-        const allPanels = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
-        allPanels.forEach(panel => {
-          panel.style.removeProperty('display');
+        // Restore panel styles and close it
+        const allPanelsAfter = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
+        allPanelsAfter.forEach((panel, index) => {
+          if (originalStyles[index]) {
+            panel.style.removeProperty('position');
+            panel.style.removeProperty('left');
+            panel.style.removeProperty('visibility');
+          }
         });
         transcriptButton.click();
 
@@ -275,10 +288,14 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
       } catch (e) {
         console.error('Error extracting from invisible panel:', e);
 
-        // Restore panel visibility
-        const allPanels = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
-        allPanels.forEach(panel => {
-          panel.style.removeProperty('display');
+        // Restore panel styles
+        const allPanelsAfter = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
+        allPanelsAfter.forEach((panel, index) => {
+          if (originalStyles[index]) {
+            panel.style.removeProperty('position');
+            panel.style.removeProperty('left');
+            panel.style.removeProperty('visibility');
+          }
         });
 
         // Try to close panel if it's open
@@ -287,7 +304,7 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
         }
         reject('Failed to extract transcript: ' + e.message);
       }
-    }, 1500); // Reduced to 1.5 seconds for faster extraction
+    }, 2500); // Increased to 2.5 seconds for reliability
 
   } catch (error) {
     reject('Error in invisible transcript method: ' + error.message);
