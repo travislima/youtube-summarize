@@ -183,8 +183,15 @@ async function getTranscript(videoId) {
 function tryTranscriptPanelMethod(resolve, reject) {
   // Try to open YouTube's transcript panel and extract text from it
   try {
-    // Find the "Show transcript" button
-    const buttons = document.querySelectorAll('button');
+    // Find the "Show transcript" button more efficiently
+    // Look in specific area instead of all buttons
+    const engagementPanels = document.querySelector('#panels');
+    if (!engagementPanels) {
+      reject('Could not find engagement panels area');
+      return;
+    }
+
+    const buttons = engagementPanels.querySelectorAll('button');
     let transcriptButton = null;
 
     for (const button of buttons) {
@@ -422,8 +429,21 @@ function init() {
   // Try to add button immediately
   createSummarizeButton();
 
-  // Keep trying every 2 seconds until button is added
-  checkInterval = setInterval(createSummarizeButton, 2000);
+  // Keep trying every 3 seconds (increased from 2) with max 10 attempts
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  checkInterval = setInterval(() => {
+    attempts++;
+    createSummarizeButton();
+
+    // Stop after max attempts even if button wasn't added
+    if (attempts >= maxAttempts) {
+      console.log('Max attempts reached, stopping button check');
+      clearInterval(checkInterval);
+      checkInterval = null;
+    }
+  }, 3000);
 }
 
 // Start when page loads
@@ -434,8 +454,11 @@ if (document.readyState === 'loading') {
 }
 
 // Re-add button when navigating to new video (YouTube is SPA)
+// Use navigation API instead of observing all DOM changes
 let lastUrl = location.href;
-new MutationObserver(() => {
+
+// Much more efficient: only check URL periodically instead of watching all DOM
+setInterval(() => {
   const url = location.href;
   if (url !== lastUrl) {
     lastUrl = url;
@@ -450,4 +473,4 @@ new MutationObserver(() => {
     // Re-initialize
     setTimeout(init, 1000);
   }
-}).observe(document, { subtree: true, childList: true });
+}, 1000); // Check every second instead of observing every DOM change
