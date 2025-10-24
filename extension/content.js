@@ -114,13 +114,14 @@ async function getTranscript(videoId) {
             })
             .then(xmlData => {
               console.log('Caption data received, length:', xmlData.length);
-              console.log('Caption data preview:', xmlData.substring(0, 500));
 
               if (!xmlData || xmlData.length < 10) {
-                console.log('Empty caption data, trying fallback method...');
-                tryTranscriptPanelMethod(resolve, reject);
+                console.log('Empty caption data from API, trying invisible panel method...');
+                tryInvisibleTranscriptMethod(resolve, reject);
                 return;
               }
+
+              console.log('Caption data preview:', xmlData.substring(0, 500));
 
               // Parse XML
               const parser = new DOMParser();
@@ -128,8 +129,8 @@ async function getTranscript(videoId) {
               const textElements = xmlDoc.getElementsByTagName('text');
 
               if (textElements.length === 0) {
-                console.log('No text elements in XML, trying fallback method...');
-                tryTranscriptPanelMethod(resolve, reject);
+                console.log('No text elements in XML, trying invisible panel method...');
+                tryInvisibleTranscriptMethod(resolve, reject);
                 return;
               }
 
@@ -157,20 +158,20 @@ async function getTranscript(videoId) {
             })
             .catch(err => {
               console.error('Error fetching caption URL:', err);
-              console.log('Fetch failed, trying fallback method...');
-              tryTranscriptPanelMethod(resolve, reject);
+              console.log('Fetch failed, trying invisible panel method...');
+              tryInvisibleTranscriptMethod(resolve, reject);
             });
 
         } else {
-          // Try fallback method: Open transcript panel and scrape it
-          console.log('Trying fallback: opening transcript panel');
-          tryTranscriptPanelMethod(resolve, reject);
+          // Try fallback method: Access transcript panel invisibly
+          console.log('No captions in playerResponse, trying invisible panel method...');
+          tryInvisibleTranscriptMethod(resolve, reject);
         }
 
       } catch (e) {
         console.error('Error extracting from page:', e);
         // Try fallback method
-        tryTranscriptPanelMethod(resolve, reject);
+        tryInvisibleTranscriptMethod(resolve, reject);
       }
 
     } catch (error) {
@@ -180,11 +181,12 @@ async function getTranscript(videoId) {
   });
 }
 
-function tryTranscriptPanelMethod(resolve, reject) {
-  // Try to open YouTube's transcript panel and extract text from it
+function tryInvisibleTranscriptMethod(resolve, reject) {
+  // Access transcript without visible panel opening
   try {
-    // Find the "Show transcript" button more efficiently
-    // Look in specific area instead of all buttons
+    console.log('Attempting invisible transcript extraction...');
+
+    // Find the transcript button
     const engagementPanels = document.querySelector('#panels');
     if (!engagementPanels) {
       reject('Could not find engagement panels area');
@@ -207,44 +209,46 @@ function tryTranscriptPanelMethod(resolve, reject) {
       return;
     }
 
-    console.log('Found transcript button, clicking it...');
+    // Hide all engagement panels before clicking to make it invisible
+    const allPanels = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
+    allPanels.forEach(panel => {
+      panel.style.setProperty('display', 'none', 'important');
+    });
 
-    // Click the button to open transcript panel
+    // Click to load the transcript data (will load but stay hidden)
     transcriptButton.click();
 
-    // Wait for panel to load - increased to 3 seconds for slower connections
+    // Wait for panel to load
     setTimeout(() => {
       try {
-        // Find transcript segments in the panel - try multiple selectors
         const transcriptPanel = document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]');
 
         if (!transcriptPanel) {
-          reject('Transcript panel did not open');
+          reject('Transcript panel did not load');
           return;
         }
 
-        // Try multiple selectors for transcript segments (YouTube changes these)
+        // Try multiple selectors for transcript segments
         let segments = transcriptPanel.querySelectorAll('yt-formatted-string.segment-text');
 
         if (!segments || segments.length === 0) {
-          // Try alternative selector
           segments = transcriptPanel.querySelectorAll('.segment-text');
         }
 
         if (!segments || segments.length === 0) {
-          // Try finding any text content in transcript items
           segments = transcriptPanel.querySelectorAll('ytd-transcript-segment-renderer');
         }
 
         if (!segments || segments.length === 0) {
           console.error('Could not find transcript segments. Panel HTML:', transcriptPanel.innerHTML.substring(0, 500));
+          // Close the panel before rejecting
+          transcriptButton.click();
           reject('No transcript segments found. Try clicking the transcript button manually first.');
           return;
         }
 
         let transcript = '';
         segments.forEach(segment => {
-          // Try to get text content from various possible structures
           const text = segment.textContent || segment.innerText;
           if (text) {
             transcript += text.trim() + ' ';
@@ -252,26 +256,41 @@ function tryTranscriptPanelMethod(resolve, reject) {
         });
 
         transcript = transcript.trim();
-        console.log('Extracted transcript from panel, length:', transcript.length);
+        console.log('Extracted transcript invisibly, length:', transcript.length);
+
+        // Restore panel visibility and close it
+        const allPanels = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
+        allPanels.forEach(panel => {
+          panel.style.removeProperty('display');
+        });
+        transcriptButton.click();
 
         if (transcript.length < 10) {
           reject('Transcript too short or extraction failed');
           return;
         }
 
-        // Close the panel
-        transcriptButton.click();
-
         resolve(transcript);
 
       } catch (e) {
-        console.error('Error extracting from panel:', e);
-        reject('Failed to extract transcript from panel: ' + e.message);
+        console.error('Error extracting from invisible panel:', e);
+
+        // Restore panel visibility
+        const allPanels = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
+        allPanels.forEach(panel => {
+          panel.style.removeProperty('display');
+        });
+
+        // Try to close panel if it's open
+        if (transcriptButton) {
+          transcriptButton.click();
+        }
+        reject('Failed to extract transcript: ' + e.message);
       }
-    }, 3000); // Wait 3 seconds for panel to load
+    }, 1500); // Reduced to 1.5 seconds for faster extraction
 
   } catch (error) {
-    reject('Error in fallback method: ' + error.message);
+    reject('Error in invisible transcript method: ' + error.message);
   }
 }
 
