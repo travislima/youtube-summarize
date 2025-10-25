@@ -209,7 +209,7 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
       return;
     }
 
-    // Move panels off-screen instead of hiding (so content still renders)
+    // Move panels off-screen (don't hide visibility so content renders)
     const allPanels = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
     const originalStyles = [];
 
@@ -217,17 +217,19 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
       originalStyles.push({
         position: panel.style.position,
         left: panel.style.left,
-        visibility: panel.style.visibility
+        opacity: panel.style.opacity,
+        pointerEvents: panel.style.pointerEvents
       });
       panel.style.setProperty('position', 'fixed', 'important');
       panel.style.setProperty('left', '-9999px', 'important');
-      panel.style.setProperty('visibility', 'hidden', 'important');
+      panel.style.setProperty('opacity', '0', 'important');
+      panel.style.setProperty('pointer-events', 'none', 'important');
     });
 
-    // Click to load the transcript data (will load but stay off-screen)
+    // Click to load the transcript data (will load off-screen)
     transcriptButton.click();
 
-    // Wait for panel to load - increased to 2.5s for reliability
+    // Wait for panel to load and render content
     setTimeout(() => {
       try {
         const transcriptPanel = document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]');
@@ -273,7 +275,8 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
           if (originalStyles[index]) {
             panel.style.removeProperty('position');
             panel.style.removeProperty('left');
-            panel.style.removeProperty('visibility');
+            panel.style.removeProperty('opacity');
+            panel.style.removeProperty('pointer-events');
           }
         });
         transcriptButton.click();
@@ -294,7 +297,8 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
           if (originalStyles[index]) {
             panel.style.removeProperty('position');
             panel.style.removeProperty('left');
-            panel.style.removeProperty('visibility');
+            panel.style.removeProperty('opacity');
+            panel.style.removeProperty('pointer-events');
           }
         });
 
@@ -304,7 +308,7 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
         }
         reject('Failed to extract transcript: ' + e.message);
       }
-    }, 2500); // Increased to 2.5 seconds for reliability
+    }, 2500); // Wait 2.5 seconds for panel to load and render
 
   } catch (error) {
     reject('Error in invisible transcript method: ' + error.message);
