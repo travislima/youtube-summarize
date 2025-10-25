@@ -159,30 +159,37 @@ function extractFromPanel(resolve, reject) {
       // Click to open the transcript panel
       transcriptButton.click();
 
-    // Wait 1 second for panel to render
+    // Wait 2 seconds for panel to render (some videos need more time)
     setTimeout(() => {
       try {
         const transcriptPanel = document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]');
 
         if (!transcriptPanel) {
+          console.error('Transcript panel did not open');
           transcriptButton.click(); // Try to close if it's stuck
           reject('Transcript panel did not open');
           return;
         }
 
+        console.log('Transcript panel found, searching for segments...');
+
         // Try multiple selectors for transcript segments
         let segments = transcriptPanel.querySelectorAll('yt-formatted-string.segment-text');
+        console.log('Selector 1 (yt-formatted-string.segment-text):', segments.length, 'segments');
 
         if (!segments || segments.length === 0) {
           segments = transcriptPanel.querySelectorAll('.segment-text');
+          console.log('Selector 2 (.segment-text):', segments.length, 'segments');
         }
 
         if (!segments || segments.length === 0) {
           segments = transcriptPanel.querySelectorAll('ytd-transcript-segment-renderer');
+          console.log('Selector 3 (ytd-transcript-segment-renderer):', segments.length, 'segments');
         }
 
         if (!segments || segments.length === 0) {
-          console.error('No transcript segments found');
+          console.error('No transcript segments found with any selector');
+          console.log('Panel HTML:', transcriptPanel.innerHTML.substring(0, 500));
           transcriptButton.click();
           reject('No transcript segments found. This video may not have captions.');
           return;
@@ -232,7 +239,7 @@ function extractFromPanel(resolve, reject) {
         }
         reject('Failed to extract transcript: ' + e.message);
       }
-    }, 1000); // Wait 1 second for panel to render
+    }, 2000); // Wait 2 seconds for panel to render (some videos need more time)
     }
 
   } catch (error) {
