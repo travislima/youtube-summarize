@@ -186,31 +186,50 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
   try {
     console.log('Opening transcript panel to extract...');
 
-    // Find the transcript button
-    const engagementPanels = document.querySelector('#panels');
-    if (!engagementPanels) {
-      reject('Could not find engagement panels area');
-      return;
-    }
-
-    const buttons = engagementPanels.querySelectorAll('button');
-    let transcriptButton = null;
-
-    for (const button of buttons) {
-      const ariaLabel = button.getAttribute('aria-label');
-      if (ariaLabel && ariaLabel.toLowerCase().includes('transcript')) {
-        transcriptButton = button;
-        break;
+    // Function to find transcript button with retry
+    const findTranscriptButton = (attempt = 0) => {
+      const engagementPanels = document.querySelector('#panels');
+      if (!engagementPanels) {
+        if (attempt < 5) {
+          console.log(`Panels not found, retry ${attempt + 1}/5...`);
+          setTimeout(() => findTranscriptButton(attempt + 1), 1000);
+          return;
+        }
+        reject('Could not find engagement panels area. YouTube may still be loading.');
+        return;
       }
-    }
 
-    if (!transcriptButton) {
-      reject('Could not find transcript button. This video may not have captions enabled.');
-      return;
-    }
+      const buttons = engagementPanels.querySelectorAll('button');
+      let transcriptButton = null;
 
-    // Click to open the transcript panel
-    transcriptButton.click();
+      for (const button of buttons) {
+        const ariaLabel = button.getAttribute('aria-label');
+        if (ariaLabel && ariaLabel.toLowerCase().includes('transcript')) {
+          transcriptButton = button;
+          break;
+        }
+      }
+
+      if (!transcriptButton) {
+        if (attempt < 5) {
+          console.log(`Transcript button not found, retry ${attempt + 1}/5...`);
+          setTimeout(() => findTranscriptButton(attempt + 1), 1000);
+          return;
+        }
+        reject('Could not find transcript button. This video may not have captions enabled.');
+        return;
+      }
+
+      // Found the button, proceed with extraction
+      extractTranscript(transcriptButton);
+    };
+
+    // Start looking for the button
+    findTranscriptButton();
+
+    function extractTranscript(transcriptButton) {
+      // Click to open the transcript panel
+      transcriptButton.click();
 
     // Wait 2 seconds for panel to render
     setTimeout(() => {
@@ -285,7 +304,8 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
         }
         reject('Failed to extract transcript: ' + e.message);
       }
-    }, 2000); // Wait 2 seconds - faster than before
+    }, 2000); // Wait 2 seconds for panel to render
+    }
 
   } catch (error) {
     reject('Error in invisible transcript method: ' + error.message);
