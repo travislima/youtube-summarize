@@ -229,16 +229,33 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
     // Click to load the transcript data (will load off-screen)
     transcriptButton.click();
 
-    // Wait for panel to load and render content
-    setTimeout(() => {
-      try {
-        const transcriptPanel = document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]');
+    // Poll for segments to appear (up to 5 seconds)
+    let attempts = 0;
+    const maxAttempts = 10; // 10 attempts x 500ms = 5 seconds max
 
-        if (!transcriptPanel) {
-          reject('Transcript panel did not load');
-          return;
-        }
+    const pollForSegments = setInterval(() => {
+      attempts++;
 
+      const transcriptPanel = document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]');
+
+      if (!transcriptPanel && attempts >= maxAttempts) {
+        clearInterval(pollForSegments);
+        // Restore styles
+        const allPanelsAfter = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
+        allPanelsAfter.forEach((panel, index) => {
+          if (originalStyles[index]) {
+            panel.style.removeProperty('position');
+            panel.style.removeProperty('left');
+            panel.style.removeProperty('opacity');
+            panel.style.removeProperty('pointer-events');
+          }
+        });
+        transcriptButton.click();
+        reject('Transcript panel did not load');
+        return;
+      }
+
+      if (transcriptPanel) {
         // Try multiple selectors for transcript segments
         let segments = transcriptPanel.querySelectorAll('yt-formatted-string.segment-text');
 
@@ -250,65 +267,83 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
           segments = transcriptPanel.querySelectorAll('ytd-transcript-segment-renderer');
         }
 
-        if (!segments || segments.length === 0) {
-          console.error('Could not find transcript segments. Panel HTML:', transcriptPanel.innerHTML.substring(0, 500));
-          // Close the panel before rejecting
+        // If we found segments, process them
+        if (segments && segments.length > 0) {
+          clearInterval(pollForSegments);
+
+          try {
+            let transcript = '';
+            segments.forEach(segment => {
+              const text = segment.textContent || segment.innerText;
+              if (text) {
+                transcript += text.trim() + ' ';
+              }
+            });
+
+            transcript = transcript.trim();
+            console.log('Extracted transcript invisibly, length:', transcript.length);
+
+            // Restore panel styles and close it
+            const allPanelsAfter = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
+            allPanelsAfter.forEach((panel, index) => {
+              if (originalStyles[index]) {
+                panel.style.removeProperty('position');
+                panel.style.removeProperty('left');
+                panel.style.removeProperty('opacity');
+                panel.style.removeProperty('pointer-events');
+              }
+            });
+            transcriptButton.click();
+
+            if (transcript.length < 10) {
+              reject('Transcript too short or extraction failed');
+              return;
+            }
+
+            resolve(transcript);
+
+          } catch (e) {
+            console.error('Error extracting from invisible panel:', e);
+
+            // Restore panel styles
+            const allPanelsAfter = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
+            allPanelsAfter.forEach((panel, index) => {
+              if (originalStyles[index]) {
+                panel.style.removeProperty('position');
+                panel.style.removeProperty('left');
+                panel.style.removeProperty('opacity');
+                panel.style.removeProperty('pointer-events');
+              }
+            });
+
+            // Try to close panel if it's open
+            if (transcriptButton) {
+              transcriptButton.click();
+            }
+            reject('Failed to extract transcript: ' + e.message);
+          }
+        }
+
+        // If max attempts reached and still no segments
+        if (attempts >= maxAttempts) {
+          clearInterval(pollForSegments);
+          console.error('Could not find transcript segments after', maxAttempts, 'attempts. Panel HTML:', transcriptPanel ? transcriptPanel.innerHTML.substring(0, 500) : 'no panel');
+
+          // Restore styles
+          const allPanelsAfter = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
+          allPanelsAfter.forEach((panel, index) => {
+            if (originalStyles[index]) {
+              panel.style.removeProperty('position');
+              panel.style.removeProperty('left');
+              panel.style.removeProperty('opacity');
+              panel.style.removeProperty('pointer-events');
+            }
+          });
           transcriptButton.click();
           reject('No transcript segments found. Try clicking the transcript button manually first.');
-          return;
         }
-
-        let transcript = '';
-        segments.forEach(segment => {
-          const text = segment.textContent || segment.innerText;
-          if (text) {
-            transcript += text.trim() + ' ';
-          }
-        });
-
-        transcript = transcript.trim();
-        console.log('Extracted transcript invisibly, length:', transcript.length);
-
-        // Restore panel styles and close it
-        const allPanelsAfter = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
-        allPanelsAfter.forEach((panel, index) => {
-          if (originalStyles[index]) {
-            panel.style.removeProperty('position');
-            panel.style.removeProperty('left');
-            panel.style.removeProperty('opacity');
-            panel.style.removeProperty('pointer-events');
-          }
-        });
-        transcriptButton.click();
-
-        if (transcript.length < 10) {
-          reject('Transcript too short or extraction failed');
-          return;
-        }
-
-        resolve(transcript);
-
-      } catch (e) {
-        console.error('Error extracting from invisible panel:', e);
-
-        // Restore panel styles
-        const allPanelsAfter = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
-        allPanelsAfter.forEach((panel, index) => {
-          if (originalStyles[index]) {
-            panel.style.removeProperty('position');
-            panel.style.removeProperty('left');
-            panel.style.removeProperty('opacity');
-            panel.style.removeProperty('pointer-events');
-          }
-        });
-
-        // Try to close panel if it's open
-        if (transcriptButton) {
-          transcriptButton.click();
-        }
-        reject('Failed to extract transcript: ' + e.message);
       }
-    }, 2500); // Wait 2.5 seconds for panel to load and render
+    }, 500); // Check every 500ms
 
   } catch (error) {
     reject('Error in invisible transcript method: ' + error.message);
