@@ -190,12 +190,12 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
     const findTranscriptButton = (attempt = 0) => {
       const engagementPanels = document.querySelector('#panels');
       if (!engagementPanels) {
-        if (attempt < 5) {
-          console.log(`Panels not found, retry ${attempt + 1}/5...`);
+        if (attempt < 10) {  // Increased from 5 to 10 (10 seconds total)
+          console.log(`Panels not found, retry ${attempt + 1}/10...`);
           setTimeout(() => findTranscriptButton(attempt + 1), 1000);
           return;
         }
-        reject('Could not find engagement panels area. YouTube may still be loading.');
+        reject('Could not find engagement panels area. YouTube may still be loading. Please try again.');
         return;
       }
 
@@ -211,21 +211,25 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
       }
 
       if (!transcriptButton) {
-        if (attempt < 5) {
-          console.log(`Transcript button not found, retry ${attempt + 1}/5...`);
+        if (attempt < 10) {  // Increased from 5 to 10 (10 seconds total)
+          console.log(`Transcript button not found, retry ${attempt + 1}/10...`);
           setTimeout(() => findTranscriptButton(attempt + 1), 1000);
           return;
         }
-        reject('Could not find transcript button. This video may not have captions enabled.');
+        reject('Could not find transcript button. This video may not have captions enabled, or YouTube is still loading. Please try again.');
         return;
       }
 
       // Found the button, proceed with extraction
+      console.log(`Found transcript button on attempt ${attempt + 1}`);
       extractTranscript(transcriptButton);
     };
 
-    // Start looking for the button
-    findTranscriptButton();
+    // Wait 1 second before starting to look for the button
+    // This gives YouTube time to fully load the page
+    setTimeout(() => {
+      findTranscriptButton();
+    }, 1000);
 
     function extractTranscript(transcriptButton) {
       // Click to open the transcript panel
