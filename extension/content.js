@@ -31,6 +31,32 @@ function createSummarizeButton() {
     return;
   }
 
+  // IMPORTANT: Check if transcript button exists before showing Summarize button
+  const engagementPanels = document.querySelector('#panels');
+  if (!engagementPanels) {
+    console.log('Panels area not ready yet, will retry...');
+    return;
+  }
+
+  const buttons = engagementPanels.querySelectorAll('button');
+  let hasTranscriptButton = false;
+
+  for (const button of buttons) {
+    const ariaLabel = button.getAttribute('aria-label');
+    if (ariaLabel && ariaLabel.toLowerCase().includes('transcript')) {
+      hasTranscriptButton = true;
+      break;
+    }
+  }
+
+  if (!hasTranscriptButton) {
+    console.log('Transcript button not ready yet, will retry...');
+    return;
+  }
+
+  // Now we know transcript button exists, safe to show Summarize button
+  console.log('Transcript button found, adding Summarize button');
+
   // Create the summarize button
   summaryButton = document.createElement('button');
   summaryButton.id = 'yt-summarize-btn';
