@@ -241,26 +241,41 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
           return;
         }
 
-        let transcript = '';
+        // Extract text with timestamps
+        let transcriptWithTimestamps = [];
         segments.forEach(segment => {
           const text = segment.textContent || segment.innerText;
+
+          // Get the timestamp from the parent element
+          const segmentRenderer = segment.closest('ytd-transcript-segment-renderer');
+          let timestamp = '0:00';
+
+          if (segmentRenderer) {
+            const timestampElement = segmentRenderer.querySelector('.segment-timestamp');
+            if (timestampElement) {
+              timestamp = timestampElement.textContent.trim();
+            }
+          }
+
           if (text) {
-            transcript += text.trim() + ' ';
+            transcriptWithTimestamps.push({
+              time: timestamp,
+              text: text.trim()
+            });
           }
         });
 
-        transcript = transcript.trim();
-        console.log('Extracted transcript, length:', transcript.length);
+        console.log('Extracted transcript with timestamps, segments:', transcriptWithTimestamps.length);
 
         // Close the panel
         transcriptButton.click();
 
-        if (transcript.length < 10) {
-          reject('Transcript too short or extraction failed');
+        if (transcriptWithTimestamps.length === 0) {
+          reject('No transcript data extracted');
           return;
         }
 
-        resolve(transcript);
+        resolve(transcriptWithTimestamps);
 
       } catch (e) {
         console.error('Error extracting transcript:', e);
@@ -297,9 +312,14 @@ async function handleSummarize() {
   try {
     console.log('Fetching transcript for video:', videoId);
 
-    // Get transcript
-    const transcript = await getTranscript(videoId);
-    console.log('Transcript fetched, length:', transcript.length);
+    // Get video title
+    const titleElement = document.querySelector('h1.ytd-watch-metadata yt-formatted-string');
+    const videoTitle = titleElement ? titleElement.textContent.trim() : '';
+    console.log('Video title:', videoTitle);
+
+    // Get transcript with timestamps
+    const transcriptData = await getTranscript(videoId);
+    console.log('Transcript fetched, segments:', transcriptData.length);
 
     // Send to backend for summarization
     const response = await fetch('http://localhost:8000/api/summarize-transcript', {
@@ -309,7 +329,8 @@ async function handleSummarize() {
       },
       body: JSON.stringify({
         video_id: videoId,
-        transcript: transcript
+        title: videoTitle,
+        transcript: transcriptData
       })
     });
 

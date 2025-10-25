@@ -204,6 +204,80 @@ Transcript:
         raise Exception(f"Error generating summary: {str(e)}")
 
 
+def summarize_with_context(text, video_title, timestamped_transcript=None):
+    """
+    Summarize text using Groq AI with video title context and timestamps
+    Returns a summary that answers the title's question with timestamps
+    """
+    if not groq_client:
+        raise Exception("Groq API key not configured")
+
+    try:
+        # Build transcript with timestamps for context (sample every ~30 seconds)
+        timestamp_context = ""
+        if timestamped_transcript and isinstance(timestamped_transcript, list):
+            # Sample timestamps throughout the video for AI reference
+            sample_interval = max(1, len(timestamped_transcript) // 20)  # Get ~20 samples
+            sampled = timestamped_transcript[::sample_interval]
+            timestamp_context = "\n\nTimestamp samples for reference:\n"
+            for segment in sampled[:20]:  # Limit to 20 samples
+                timestamp_context += f"[{segment['time']}] {segment['text'][:100]}\n"
+
+        # Extract the main question/topic from the title
+        title_context = f"\n\nVideo Title: \"{video_title}\"\n" if video_title else ""
+
+        # Create enhanced prompt
+        prompt = f"""You are a professional content summarizer. Create a summary that directly answers the question or topic in the video title.{title_context}
+
+Your task: Answer the question or explain the topic from the title clearly and directly.
+
+FORMAT YOUR RESPONSE EXACTLY AS SHOWN:
+
+## {video_title if video_title else "Video Summary"}
+
+[Write 2-3 sentences directly answering the title's question or explaining the topic. If title says "How to..." then explain HOW. If it says "Why..." then explain WHY. Be direct and specific.]
+
+## Key Points
+* **[Point 1]** ([timestamp]) - One clear sentence
+* **[Point 2]** ([timestamp]) - One clear sentence
+* **[Point 3]** ([timestamp]) - One clear sentence
+[If video lists "10 tips" or "5 ways", LIST EVERY SINGLE ONE with timestamps]
+
+## Main Takeaways
+* ([timestamp]) [Most important actionable insight]
+* ([timestamp]) [Second key insight]
+* ([timestamp]) [Third key insight]
+
+CRITICAL RULES:
+- Answer the title's question DIRECTLY - if it asks "how", explain how
+- Include approximate timestamps (like "2:30" or "15:45") in parentheses for each main point
+- Write naturally - say "In this video..." NOT "The transcript discusses..."
+- Use ## for headers, * for bullets, **bold** for key terms
+- If video has numbered items (tips, steps, ways), include ALL of them with timestamps
+- Be concise but complete - every point should have a timestamp reference
+
+Transcript:
+{text[:6000]}{timestamp_context}"""
+
+        # Call Groq API
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.5,
+            max_tokens=1500,
+        )
+
+        return chat_completion.choices[0].message.content
+
+    except Exception as e:
+        raise Exception(f"Error generating summary: {str(e)}")
+
+
 @app.route('/')
 def index():
     """Serve the main HTML page"""
@@ -277,8 +351,8 @@ def summarize_video():
 def summarize_transcript():
     """
     API endpoint for Chrome extension
-    Accepts transcript text directly (extension fetches it client-side)
-    Expects JSON: {"video_id": "...", "transcript": "..."}
+    Accepts transcript with timestamps directly (extension fetches it client-side)
+    Expects JSON: {"video_id": "...", "title": "...", "transcript": [{time: "0:00", text: "..."}]}
     Returns JSON: {"summary": "..."}
     """
     try:
@@ -287,16 +361,29 @@ def summarize_transcript():
         if not data or 'transcript' not in data:
             return jsonify({'error': 'No transcript provided'}), 400
 
-        transcript = data['transcript']
+        transcript_data = data['transcript']
         video_id = data.get('video_id', 'unknown')
+        video_title = data.get('title', '')
 
-        print(f"DEBUG: Received transcript from extension for video {video_id}, length: {len(transcript)}")
+        print(f"DEBUG: Received transcript from extension for video {video_id}")
+        print(f"DEBUG: Video title: {video_title}")
+        print(f"DEBUG: Transcript segments: {len(transcript_data) if isinstance(transcript_data, list) else 'not a list'}")
 
-        if not transcript or len(transcript) < 10:
+        # Handle both old format (string) and new format (array of {time, text})
+        if isinstance(transcript_data, str):
+            # Old format - just plain text
+            transcript_text = transcript_data
+            timestamped_transcript = None
+        else:
+            # New format - array with timestamps
+            transcript_text = ' '.join([segment['text'] for segment in transcript_data])
+            timestamped_transcript = transcript_data
+
+        if not transcript_text or len(transcript_text) < 10:
             return jsonify({'error': 'Transcript is too short or empty'}), 400
 
-        # Generate summary
-        summary = summarize_text(transcript)
+        # Generate summary with title and timestamps
+        summary = summarize_with_context(transcript_text, video_title, timestamped_transcript)
 
         print(f"DEBUG: Summary generated successfully")
 
@@ -304,7 +391,7 @@ def summarize_transcript():
             'success': True,
             'video_id': video_id,
             'summary': summary,
-            'transcript_length': len(transcript)
+            'transcript_length': len(transcript_text)
         })
 
     except Exception as e:
