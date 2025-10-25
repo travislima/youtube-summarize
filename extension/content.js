@@ -98,126 +98,8 @@ async function getTranscript(videoId) {
     try {
       console.log('Attempting to get transcript for video:', videoId);
 
-      // Method 1: Try to extract from ytInitialPlayerResponse (embedded in page)
-      try {
-        // YouTube embeds data in the page source
-        const scripts = document.querySelectorAll('script');
-        let playerResponse = null;
-
-        for (const script of scripts) {
-          const text = script.textContent;
-          if (text.includes('ytInitialPlayerResponse')) {
-            // Extract the JSON object
-            const match = text.match(/var ytInitialPlayerResponse = ({.+?});/);
-            if (match) {
-              playerResponse = JSON.parse(match[1]);
-              console.log('Found ytInitialPlayerResponse');
-              break;
-            }
-          }
-        }
-
-        if (playerResponse && playerResponse.captions) {
-          // IMPORTANT: Validate that the video ID matches current URL
-          // (prevents using cached data from previous video)
-          const responseVideoId = playerResponse.videoDetails?.videoId;
-          if (responseVideoId && responseVideoId !== videoId) {
-            console.log(`Video ID mismatch! Response: ${responseVideoId}, Current: ${videoId}`);
-            console.log('Cached data detected, skipping to panel method...');
-            tryInvisibleTranscriptMethod(resolve, reject);
-            return;
-          }
-          console.log('Video ID validated:', responseVideoId);
-          const captionTracks = playerResponse.captions.playerCaptionsTracklistRenderer?.captionTracks;
-
-          if (!captionTracks || captionTracks.length === 0) {
-            reject('No captions available for this video');
-            return;
-          }
-
-          // Find English caption track
-          const englishTrack = captionTracks.find(track =>
-            track.languageCode === 'en' || track.languageCode.startsWith('en')
-          ) || captionTracks[0]; // Fallback to first available
-
-          console.log('Found caption track:', englishTrack.name.simpleText);
-
-          // Fetch the caption data
-          const captionUrl = englishTrack.baseUrl;
-          console.log('Fetching captions from:', captionUrl);
-
-          // Use fetch with credentials to avoid CORS issues
-          fetch(captionUrl, {
-            method: 'GET',
-            credentials: 'include',
-            mode: 'cors'
-          })
-            .then(response => {
-              console.log('Caption response status:', response.status);
-              console.log('Caption response headers:', response.headers);
-              return response.text();
-            })
-            .then(xmlData => {
-              console.log('Caption data received, length:', xmlData.length);
-
-              if (!xmlData || xmlData.length < 10) {
-                console.log('Empty caption data from API, trying invisible panel method...');
-                tryInvisibleTranscriptMethod(resolve, reject);
-                return;
-              }
-
-              console.log('Caption data preview:', xmlData.substring(0, 500));
-
-              // Parse XML
-              const parser = new DOMParser();
-              const xmlDoc = parser.parseFromString(xmlData, 'text/xml');
-              const textElements = xmlDoc.getElementsByTagName('text');
-
-              if (textElements.length === 0) {
-                console.log('No text elements in XML, trying invisible panel method...');
-                tryInvisibleTranscriptMethod(resolve, reject);
-                return;
-              }
-
-              // Extract text content
-              let transcript = '';
-              for (let i = 0; i < textElements.length; i++) {
-                const text = textElements[i].textContent;
-                if (text) {
-                  // Decode HTML entities
-                  const temp = document.createElement('textarea');
-                  temp.innerHTML = text;
-                  transcript += temp.value + ' ';
-                }
-              }
-
-              transcript = transcript.trim();
-              console.log('Extracted transcript length:', transcript.length);
-
-              if (transcript.length < 10) {
-                reject('Transcript too short');
-                return;
-              }
-
-              resolve(transcript);
-            })
-            .catch(err => {
-              console.error('Error fetching caption URL:', err);
-              console.log('Fetch failed, trying invisible panel method...');
-              tryInvisibleTranscriptMethod(resolve, reject);
-            });
-
-        } else {
-          // Try fallback method: Access transcript panel invisibly
-          console.log('No captions in playerResponse, trying invisible panel method...');
-          tryInvisibleTranscriptMethod(resolve, reject);
-        }
-
-      } catch (e) {
-        console.error('Error extracting from page:', e);
-        // Try fallback method
-        tryInvisibleTranscriptMethod(resolve, reject);
-      }
+      // Simplified: Just use the panel extraction method (reliable and stable)
+      extractFromPanel(resolve, reject);
 
     } catch (error) {
       console.error('Error in getTranscript:', error);
@@ -226,7 +108,7 @@ async function getTranscript(videoId) {
   });
 }
 
-function tryInvisibleTranscriptMethod(resolve, reject) {
+function extractFromPanel(resolve, reject) {
   // Open transcript panel and extract (will be briefly visible)
   try {
     console.log('Opening transcript panel to extract...');
@@ -235,9 +117,9 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
     const findTranscriptButton = (attempt = 0) => {
       const engagementPanels = document.querySelector('#panels');
       if (!engagementPanels) {
-        if (attempt < 10) {  // Increased from 5 to 10 (10 seconds total)
-          console.log(`Panels not found, retry ${attempt + 1}/10...`);
-          setTimeout(() => findTranscriptButton(attempt + 1), 1000);
+        if (attempt < 5) {
+          console.log(`Panels not found, retry ${attempt + 1}/5...`);
+          setTimeout(() => findTranscriptButton(attempt + 1), 500);
           return;
         }
         reject('Could not find engagement panels area. YouTube may still be loading. Please try again.');
@@ -256,12 +138,12 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
       }
 
       if (!transcriptButton) {
-        if (attempt < 10) {  // Increased from 5 to 10 (10 seconds total)
-          console.log(`Transcript button not found, retry ${attempt + 1}/10...`);
-          setTimeout(() => findTranscriptButton(attempt + 1), 1000);
+        if (attempt < 5) {
+          console.log(`Transcript button not found, retry ${attempt + 1}/5...`);
+          setTimeout(() => findTranscriptButton(attempt + 1), 500);
           return;
         }
-        reject('Could not find transcript button. This video may not have captions enabled, or YouTube is still loading. Please try again.');
+        reject('Could not find transcript button. This video may not have captions enabled.');
         return;
       }
 
@@ -270,17 +152,14 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
       extractTranscript(transcriptButton);
     };
 
-    // Wait 1 second before starting to look for the button
-    // This gives YouTube time to fully load the page
-    setTimeout(() => {
-      findTranscriptButton();
-    }, 1000);
+    // Start looking for the button immediately
+    findTranscriptButton();
 
     function extractTranscript(transcriptButton) {
       // Click to open the transcript panel
       transcriptButton.click();
 
-    // Wait 2 seconds for panel to render
+    // Wait 1 second for panel to render
     setTimeout(() => {
       try {
         const transcriptPanel = document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]');
@@ -353,7 +232,7 @@ function tryInvisibleTranscriptMethod(resolve, reject) {
         }
         reject('Failed to extract transcript: ' + e.message);
       }
-    }, 2000); // Wait 2 seconds for panel to render
+    }, 1000); // Wait 1 second for panel to render
     }
 
   } catch (error) {
@@ -535,9 +414,9 @@ function init() {
   // Try to add button immediately
   createSummarizeButton();
 
-  // Keep trying every 3 seconds (increased from 2) with max 10 attempts
+  // Keep trying every 2 seconds with max 5 attempts
   let attempts = 0;
-  const maxAttempts = 10;
+  const maxAttempts = 5;
 
   checkInterval = setInterval(() => {
     attempts++;
@@ -549,7 +428,7 @@ function init() {
       clearInterval(checkInterval);
       checkInterval = null;
     }
-  }, 3000);
+  }, 2000);
 }
 
 // Start when page loads
