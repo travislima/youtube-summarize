@@ -15,13 +15,22 @@ function getVideoId() {
 }
 
 function createSummarizeButton() {
-  // Remove old button if exists
-  if (summaryButton) {
-    summaryButton.remove();
-  }
-
   const videoId = getVideoId();
   if (!videoId) return;
+
+  // Check if button already exists in DOM (prevent duplicates)
+  const existingButton = document.getElementById('yt-summarize-btn');
+  if (existingButton) {
+    console.log('Summarize button already exists, skipping...');
+    summaryButton = existingButton;
+    return;
+  }
+
+  // Remove old button reference if exists
+  if (summaryButton) {
+    summaryButton.remove();
+    summaryButton = null;
+  }
 
   // Find the actions bar below the video (where like/share buttons are)
   const actionsBar = document.querySelector('#actions ytd-menu-renderer');
@@ -109,6 +118,16 @@ async function getTranscript(videoId) {
         }
 
         if (playerResponse && playerResponse.captions) {
+          // IMPORTANT: Validate that the video ID matches current URL
+          // (prevents using cached data from previous video)
+          const responseVideoId = playerResponse.videoDetails?.videoId;
+          if (responseVideoId && responseVideoId !== videoId) {
+            console.log(`Video ID mismatch! Response: ${responseVideoId}, Current: ${videoId}`);
+            console.log('Cached data detected, skipping to panel method...');
+            tryInvisibleTranscriptMethod(resolve, reject);
+            return;
+          }
+          console.log('Video ID validated:', responseVideoId);
           const captionTracks = playerResponse.captions.playerCaptionsTracklistRenderer?.captionTracks;
 
           if (!captionTracks || captionTracks.length === 0) {
@@ -550,14 +569,21 @@ setInterval(() => {
   if (url !== lastUrl) {
     lastUrl = url;
     console.log('URL changed, re-initializing...');
+
+    // Remove old button from DOM if exists
+    const oldButton = document.getElementById('yt-summarize-btn');
+    if (oldButton) {
+      oldButton.remove();
+    }
     summaryButton = null;
 
     // Clear old interval if exists
     if (checkInterval) {
       clearInterval(checkInterval);
+      checkInterval = null;
     }
 
-    // Re-initialize
+    // Re-initialize after YouTube loads new page
     setTimeout(init, 1000);
   }
 }, 1000); // Check every second instead of observing every DOM change
