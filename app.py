@@ -23,7 +23,9 @@ app = Flask(__name__)
 CORS(app)
 
 # Initialize rate limiter
-# Limit: 20 requests per minute per IP address
+# Global default: 100 requests per hour per IP
+# The /api/summarize-transcript endpoint applies a separate 20 requests per minute limit
+# Uses in-memory storage (suitable for Railway free tier)
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
