@@ -307,7 +307,7 @@ async function handleSummarize() {
     console.log('Transcript fetched, segments:', transcriptData.length);
 
     // Send to backend for summarization
-    const response = await fetch('http://localhost:8000/api/summarize-transcript', {
+    const response = await fetch('https://web-production-f6684.up.railway.app/api/summarize-transcript', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
