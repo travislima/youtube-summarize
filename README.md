@@ -1,244 +1,261 @@
-# YouTube Video Summarizer
+# YouTube Video Summarizer 🎬✨
 
-A simple web application that extracts and summarizes YouTube video transcripts using AI. Perfect for quickly understanding the main talking points of any video!
+A Chrome extension that instantly summarizes any YouTube video using AI. Get the key points, timestamps, and main takeaways in seconds!
 
-## Features
-
-- 🎯 Extract transcripts from any YouTube video (that has captions)
-- 🤖 AI-powered summarization using Groq (free tier)
-- 💨 Fast and simple to use
-- 💰 Completely FREE to run (no costs!)
-- 🎨 Clean, modern user interface
-
-## How It Works
-
-1. Paste a YouTube URL
-2. App fetches the video's transcript (from captions)
-3. Groq AI analyzes and summarizes the content
-4. Get main talking points instantly!
+![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue?logo=google-chrome)
+![Status](https://img.shields.io/badge/Status-Active-success)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 ---
 
-## Quick Start Guide (For Non-Developers)
+## 🚀 Features
 
-### Prerequisites
+- **One-Click Summaries** - Click "Summarize" button on any YouTube video
+- **Smart AI Analysis** - Answers the question in the video title directly
+- **Timestamps Included** - Jump to important moments with time markers
+- **Key Points Extraction** - Get bulleted highlights of main topics
+- **Fast & Free** - Hosted backend ready to use, no setup required
 
-You'll need:
-- Python 3.8 or higher
-- A Groq API key (free!)
+---
 
-### Step 1: Get Your Free Groq API Key
+## 📦 Installation
 
-1. Go to https://console.groq.com
-2. Sign up for a free account (no credit card required)
-3. Go to "API Keys" section
-4. Click "Create API Key"
-5. Copy the key (you'll need it in Step 3)
+### Quick Install (2 minutes)
 
-### Step 2: Install Python
+1. **Download the extension**
+   - [Click here to download](https://github.com/travislima/youtube-summarize/archive/refs/heads/claude/init-project-011CUPtbJtTXPSUcipiicHbo.zip)
+   - Extract the ZIP file
 
-**On Windows:**
-1. Download from https://www.python.org/downloads/
-2. Run installer
-3. ✅ CHECK "Add Python to PATH" during installation!
+2. **Install in Chrome**
+   - Open Chrome and go to `chrome://extensions`
+   - Toggle ON "Developer mode" (top right)
+   - Click "Load unpacked"
+   - Select the `extension` folder from the extracted files
 
-**On Mac:**
+3. **Start using it!**
+   - Go to any YouTube video with captions
+   - Look for the "Summarize" button below the video
+   - Click and wait ~10 seconds for your AI summary
+
+---
+
+## 🎯 How to Use
+
+1. Navigate to any YouTube video that has captions/subtitles
+2. Click the **"Summarize"** button (next to Like/Share buttons)
+3. Wait while AI analyzes the transcript (~5-15 seconds)
+4. Read your summary with timestamps and key points!
+
+### Works Best With:
+- ✅ Videos with English captions
+- ✅ Educational content
+- ✅ Podcasts and interviews
+- ✅ News and commentary
+- ✅ Tutorials and how-tos
+
+---
+
+## 🛠️ Architecture
+
+This extension has two parts:
+
+### Chrome Extension (Frontend)
+- Adds "Summarize" button to YouTube
+- Extracts transcript from YouTube's API
+- Displays beautiful summary modal
+- **Location:** `extension/` folder
+
+### Flask Backend (API)
+- Hosted on Railway (free tier)
+- Uses Groq AI for summarization
+- Processes transcript and generates summaries
+- **URL:** https://web-production-f6684.up.railway.app
+
+---
+
+## 🔧 For Developers
+
+### Running Locally
+
+Want to modify or test the extension locally?
+
+#### 1. Clone the Repository
 ```bash
-brew install python3
-```
-
-**On Linux:**
-```bash
-sudo apt update
-sudo apt install python3 python3-pip
-```
-
-### Step 3: Set Up the Project
-
-Open your terminal/command prompt and run these commands:
-
-```bash
-# Navigate to the project folder
+git clone https://github.com/travislima/youtube-summarize.git
 cd youtube-summarize
+```
 
-# Install required packages
+#### 2. Set Up Backend (Optional - if you want to run your own)
+```bash
+# Install dependencies
 pip install -r requirements.txt
 
-# Create your environment file
+# Create .env file
 cp .env.example .env
-```
+# Add your GROQ_API_KEY to .env
 
-Now, open the `.env` file with a text editor and replace `your_groq_api_key_here` with your actual Groq API key from Step 1.
-
-### Step 4: Run the Application
-
-In your terminal, run:
-
-```bash
+# Run backend
 python app.py
 ```
 
-You should see:
+#### 3. Update Extension (if running local backend)
+Edit `extension/content.js` line 310:
+```javascript
+const response = await fetch('http://localhost:5000/api/summarize-transcript', {
 ```
-* Running on http://0.0.0.0:5000
-```
 
-### Step 5: Use the App
+#### 4. Load Extension
+- Go to `chrome://extensions`
+- Enable "Developer mode"
+- Click "Load unpacked"
+- Select the `extension/` folder
 
-1. Open your web browser
-2. Go to: `http://localhost:5000`
-3. Paste any YouTube URL
-4. Click "Summarize Video"
-5. Wait 10-20 seconds
-6. See your summary!
+### Tech Stack
 
-### Step 6: Stop the Application
+**Extension:**
+- Vanilla JavaScript
+- Chrome Extension Manifest V3
+- CSS3 for styling
 
-Press `Ctrl+C` in the terminal to stop the server.
+**Backend:**
+- Python 3.11
+- Flask web framework
+- Groq AI API (Llama 3.3 70B model)
+- youtube-transcript-api
 
----
-
-## Testing the App
-
-Here are some YouTube videos you can test with:
-
-1. TED Talks (usually have good transcripts)
-2. Educational videos
-3. News videos
-4. Any video with captions enabled
-
-**Note:** The video must have captions/subtitles enabled. If you get an error about "no transcript found", try a different video.
-
----
-
-## Troubleshooting
-
-### "ModuleNotFoundError"
-- Run: `pip install -r requirements.txt`
-
-### "GROQ_API_KEY not found"
-- Make sure you created the `.env` file
-- Make sure the API key is correct (no extra spaces)
-
-### "No transcript found"
-- The video doesn't have captions enabled
-- Try a different video
-
-### "Port already in use"
-- Another app is using port 5000
-- Change the port in `.env`: add `PORT=8000`
-- Run again and visit `http://localhost:8000`
-
----
-
-## Deploying to the Internet (Free Options)
-
-### Option 1: Render (Recommended - Easiest)
-
-1. Create account at https://render.com
-2. Click "New +" → "Web Service"
-3. Connect your GitHub repository
-4. Fill in:
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `gunicorn app:app`
-5. Add environment variable:
-   - Key: `GROQ_API_KEY`
-   - Value: Your Groq API key
-6. Click "Create Web Service"
-7. Wait 2-3 minutes
-8. Your app will be live at `https://your-app.onrender.com`
-
-**Note:** Free tier sleeps after inactivity, takes 30s to wake up.
-
-### Option 2: Railway
-
-1. Create account at https://railway.app
-2. Click "New Project" → "Deploy from GitHub repo"
-3. Select this repository
-4. Add environment variable `GROQ_API_KEY`
-5. Railway auto-detects Python and deploys
-6. Get your public URL
-
-### Option 3: PythonAnywhere
-
-1. Sign up at https://www.pythonanywhere.com (free tier)
-2. Upload your files
-3. Configure WSGI file
-4. Add your API key to environment
-5. Reload app
-
----
-
-## Project Structure
-
+### Project Structure
 ```
 youtube-summarize/
-├── app.py                 # Flask backend (main application)
+├── extension/              # Chrome extension
+│   ├── manifest.json      # Extension config
+│   ├── content.js         # Main logic
+│   ├── content.css        # Styling
+│   ├── popup.html         # Extension popup
+│   └── icon*.png          # Icons
+├── app.py                 # Flask backend API
 ├── requirements.txt       # Python dependencies
-├── .env                   # Your API keys (create this!)
-├── .env.example          # Template for .env
-├── .gitignore            # Git ignore file
-├── static/               # Frontend files
-│   ├── index.html       # Main page
-│   ├── style.css        # Styling
-│   └── script.js        # Frontend logic
-└── README.md            # This file
+└── README.md             # This file
 ```
 
 ---
 
-## Tech Stack
+## 📝 API Documentation
 
-- **Backend:** Python 3 + Flask
-- **Transcript:** youtube-transcript-api (free)
-- **AI:** Groq API with Llama 3.1 model (free tier)
-- **Frontend:** HTML, CSS, JavaScript (vanilla)
+### Endpoint: `/api/summarize-transcript`
 
----
+**Method:** `POST`
 
-## Costs
+**Request Body:**
+```json
+{
+  "video_id": "dQw4w9WgXcQ",
+  "title": "Video Title Here",
+  "transcript": [
+    {"time": "0:00", "text": "Transcript segment..."},
+    {"time": "0:05", "text": "Another segment..."}
+  ]
+}
+```
 
-**Current setup: $0/month**
-
-- Groq: Free tier (plenty for testing)
-- YouTube Transcript API: Free (no API key needed)
-- Render/Railway: Free tier available
-
-**If you want to scale:**
-- Groq paid plans start at $0.10 per million tokens
-- Render paid plans: $7/month
-- You'll know when you need to upgrade
-
----
-
-## Future Enhancements
-
-Ideas for making this better:
-
-- ✅ Save summaries to a database
-- ✅ User accounts and history
-- ✅ Adjustable summary length
-- ✅ Extract timestamps for key points
-- ✅ Support for playlists
-- ✅ Download summaries as PDF
-- ✅ Chrome extension version
-- ✅ Multiple language support
+**Response:**
+```json
+{
+  "success": true,
+  "video_id": "dQw4w9WgXcQ",
+  "summary": "## Video Title\n\n[AI-generated summary with timestamps]"
+}
+```
 
 ---
 
-## Need Help?
+## 🚢 Deploying Your Own Backend
 
-1. Check the Troubleshooting section above
-2. Make sure Python is installed: `python --version`
-3. Make sure packages are installed: `pip list`
-4. Check your API key is correct in `.env`
+Want to host your own backend? Deploy to Railway:
+
+1. **Fork this repository**
+2. **Sign up at** [railway.app](https://railway.app)
+3. **Create new project** → Deploy from GitHub repo
+4. **Add environment variable:** `GROQ_API_KEY` = your_api_key
+5. **Get your Railway URL** (e.g., `https://your-app.railway.app`)
+6. **Update extension:** Change URL in `extension/content.js` line 310
+7. **Reload extension** in Chrome
+
+### Get a Free Groq API Key
+1. Go to [console.groq.com](https://console.groq.com)
+2. Sign up (free, no credit card)
+3. Create API key
+4. Add to Railway environment variables
 
 ---
 
-## License
+## 🐛 Troubleshooting
 
-This is a personal project - feel free to use, modify, and share!
+### Button doesn't appear?
+- Refresh the YouTube page
+- Make sure video has captions (click CC button)
+- Check that extension is enabled in `chrome://extensions`
+
+### "No transcript found" error?
+- Video doesn't have captions/subtitles
+- Try a different video (most popular videos have captions)
+
+### Extension slowing down YouTube?
+- This was fixed in recent updates
+- Make sure you have the latest version
+- Re-download and reinstall if needed
+
+### Still having issues?
+- Open Chrome DevTools (F12) → Console tab
+- Look for errors starting with `content.js:`
+- Report the issue with console logs
 
 ---
 
-Happy summarizing! 🎉
+## 📜 License
+
+MIT License - Feel free to use, modify, and share!
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Feel free to:
+- Report bugs
+- Suggest features
+- Submit pull requests
+- Share with friends
+
+---
+
+## 💰 Costs
+
+**$0/month** for normal use!
+
+- Groq AI: Free tier (generous limits)
+- Railway: Free tier (sufficient for personal use)
+- YouTube API: Free (transcript extraction)
+
+---
+
+## 🎉 Credits
+
+Built with:
+- [Groq AI](https://groq.com) - Lightning-fast AI inference
+- [youtube-transcript-api](https://github.com/jdepoix/youtube-transcript-api) - Transcript extraction
+- Flask - Backend framework
+- Chrome Extensions API
+
+---
+
+## 📬 Support
+
+Having issues or questions?
+- Check the Troubleshooting section above
+- Open an issue on GitHub
+- Review the console logs in Chrome DevTools
+
+---
+
+**Happy Summarizing! 🚀**
+
+Made with ❤️ for faster video consumption
