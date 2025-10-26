@@ -451,9 +451,9 @@ function init() {
   // Try to add button immediately
   createSummarizeButton();
 
-  // Keep trying every 2 seconds with max 5 attempts
+  // Keep trying every 3 seconds with max 3 attempts (reduced from 5)
   let attempts = 0;
-  const maxAttempts = 5;
+  const maxAttempts = 3;
 
   checkInterval = setInterval(() => {
     attempts++;
@@ -465,7 +465,7 @@ function init() {
       clearInterval(checkInterval);
       checkInterval = null;
     }
-  }, 2000);
+  }, 3000); // Increased from 2s to 3s
 }
 
 // Start when page loads
@@ -476,30 +476,23 @@ if (document.readyState === 'loading') {
 }
 
 // Re-add button when navigating to new video (YouTube is SPA)
-// Use navigation API instead of observing all DOM changes
-let lastUrl = location.href;
+// Listen to YouTube's native navigation event instead of polling
+document.addEventListener('yt-navigate-finish', () => {
+  console.log('YouTube navigation detected, re-initializing...');
 
-// Much more efficient: only check URL periodically instead of watching all DOM
-setInterval(() => {
-  const url = location.href;
-  if (url !== lastUrl) {
-    lastUrl = url;
-    console.log('URL changed, re-initializing...');
-
-    // Remove old button from DOM if exists
-    const oldButton = document.getElementById('yt-summarize-btn');
-    if (oldButton) {
-      oldButton.remove();
-    }
-    summaryButton = null;
-
-    // Clear old interval if exists
-    if (checkInterval) {
-      clearInterval(checkInterval);
-      checkInterval = null;
-    }
-
-    // Re-initialize after YouTube loads new page
-    setTimeout(init, 1000);
+  // Remove old button from DOM if exists
+  const oldButton = document.getElementById('yt-summarize-btn');
+  if (oldButton) {
+    oldButton.remove();
   }
-}, 1000); // Check every second instead of observing every DOM change
+  summaryButton = null;
+
+  // Clear old interval if exists
+  if (checkInterval) {
+    clearInterval(checkInterval);
+    checkInterval = null;
+  }
+
+  // Re-initialize after YouTube loads new page
+  setTimeout(init, 1500);
+});
