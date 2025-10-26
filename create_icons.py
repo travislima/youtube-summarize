@@ -31,13 +31,26 @@ def create_icon(size, filename):
 
         draw.line([(0, y), (size, y)], fill=(r, g, b))
 
-    # Add white text "YT"
+    # Add white text "YT" - make it larger to fill more of the square
     try:
-        # Try to use a nice font
-        font_size = size // 2
-        font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+        # Try to use a nice bold font - increased from size//2 to 70% of icon size
+        font_size = int(size * 0.7)
+        # Try multiple font paths (macOS, then Linux)
+        font_paths = [
+            "/System/Library/Fonts/Helvetica.ttc",  # macOS
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",  # Linux
+        ]
+        font = None
+        for font_path in font_paths:
+            try:
+                font = ImageFont.truetype(font_path, font_size)
+                break
+            except:
+                continue
+        if font is None:
+            raise Exception("No font found")
     except:
-        # Fallback to default font
+        # Fallback to default font (will be smaller but still visible)
         font = ImageDraw.Draw(img).getfont()
 
     text = "YT"
