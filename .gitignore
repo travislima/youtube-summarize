@@ -36,6 +36,18 @@ wheels/
 # OS
 .DS_Store
 Thumbs.db
+.AppleDouble
+.LSOverride
 
 # Logs
 *.log
+
+# Chrome Extension (packaged versions)
+*.crx
+*.pem
+extension.zip
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
