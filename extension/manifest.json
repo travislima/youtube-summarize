@@ -9,7 +9,7 @@
   ],
   "host_permissions": [
     "https://www.youtube.com/*",
-    "http://localhost:8000/*"
+    "https://web-production-f6684.up.railway.app/*"
   ],
   "content_scripts": [
     {
