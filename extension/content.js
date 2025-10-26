@@ -158,88 +158,118 @@ function extractFromPanel(resolve, reject) {
     function extractTranscript(transcriptButton) {
       // Click to open the transcript panel
       transcriptButton.click();
+      console.log('Clicked transcript button, waiting for panel to load...');
 
-    // Wait 2 seconds for panel to render (some videos need more time)
-    setTimeout(() => {
-      try {
-        const transcriptPanel = document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]');
+      // Wait for panel to appear and be fully loaded
+      const waitForSegments = (attempt = 0) => {
+        setTimeout(() => {
+          try {
+            const transcriptPanel = document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]');
 
-        if (!transcriptPanel) {
-          console.error('Transcript panel did not open');
-          transcriptButton.click(); // Try to close if it's stuck
-          reject('Transcript panel did not open');
-          return;
-        }
-
-        console.log('Transcript panel found, searching for segments...');
-
-        // Try multiple selectors for transcript segments
-        let segments = transcriptPanel.querySelectorAll('yt-formatted-string.segment-text');
-        console.log('Selector 1 (yt-formatted-string.segment-text):', segments.length, 'segments');
-
-        if (!segments || segments.length === 0) {
-          segments = transcriptPanel.querySelectorAll('.segment-text');
-          console.log('Selector 2 (.segment-text):', segments.length, 'segments');
-        }
-
-        if (!segments || segments.length === 0) {
-          segments = transcriptPanel.querySelectorAll('ytd-transcript-segment-renderer');
-          console.log('Selector 3 (ytd-transcript-segment-renderer):', segments.length, 'segments');
-        }
-
-        if (!segments || segments.length === 0) {
-          console.error('No transcript segments found with any selector');
-          console.log('Panel HTML:', transcriptPanel.innerHTML.substring(0, 500));
-          transcriptButton.click();
-          reject('No transcript segments found. This video may not have captions.');
-          return;
-        }
-
-        // Extract text with timestamps
-        let transcriptWithTimestamps = [];
-        segments.forEach(segment => {
-          const text = segment.textContent || segment.innerText;
-
-          // Get the timestamp from the parent element
-          const segmentRenderer = segment.closest('ytd-transcript-segment-renderer');
-          let timestamp = '0:00';
-
-          if (segmentRenderer) {
-            const timestampElement = segmentRenderer.querySelector('.segment-timestamp');
-            if (timestampElement) {
-              timestamp = timestampElement.textContent.trim();
+            if (!transcriptPanel) {
+              if (attempt < 3) {
+                console.log(`Panel not found, retry ${attempt + 1}/3...`);
+                waitForSegments(attempt + 1);
+                return;
+              }
+              console.error('Transcript panel did not open after retries');
+              transcriptButton.click(); // Try to close if it's stuck
+              reject('Transcript panel did not open. Please try again.');
+              return;
             }
-          }
 
-          if (text) {
-            transcriptWithTimestamps.push({
-              time: timestamp,
-              text: text.trim()
+            // Check if panel is visible (YouTube sets visibility attribute)
+            const isVisible = transcriptPanel.getAttribute('visibility') === 'ENGAGEMENT_PANEL_VISIBILITY_EXPANDED';
+            if (!isVisible && attempt < 3) {
+              console.log(`Panel not expanded yet, retry ${attempt + 1}/3...`);
+              waitForSegments(attempt + 1);
+              return;
+            }
+
+            console.log('Transcript panel found and expanded, searching for segments...');
+
+            // Try multiple selectors for transcript segments
+            let segments = transcriptPanel.querySelectorAll('yt-formatted-string.segment-text');
+            console.log('Selector 1 (yt-formatted-string.segment-text):', segments.length, 'segments');
+
+            if (!segments || segments.length === 0) {
+              segments = transcriptPanel.querySelectorAll('.segment-text');
+              console.log('Selector 2 (.segment-text):', segments.length, 'segments');
+            }
+
+            if (!segments || segments.length === 0) {
+              segments = transcriptPanel.querySelectorAll('ytd-transcript-segment-renderer');
+              console.log('Selector 3 (ytd-transcript-segment-renderer):', segments.length, 'segments');
+            }
+
+            // If still no segments and we haven't retried enough, try again
+            if ((!segments || segments.length === 0) && attempt < 3) {
+              console.log(`No segments found yet, retry ${attempt + 1}/3...`);
+              waitForSegments(attempt + 1);
+              return;
+            }
+
+            if (!segments || segments.length === 0) {
+              console.error('No transcript segments found with any selector after retries');
+              console.log('Panel HTML preview:', transcriptPanel.innerHTML.substring(0, 500));
+              transcriptButton.click();
+              reject('No transcript segments found. This video may not have captions, or YouTube is still loading.');
+              return;
+            }
+
+            // Extract text with timestamps
+            let transcriptWithTimestamps = [];
+            segments.forEach(segment => {
+              const text = segment.textContent || segment.innerText;
+
+              // Get the timestamp from the parent element
+              const segmentRenderer = segment.closest('ytd-transcript-segment-renderer');
+              let timestamp = '0:00';
+
+              if (segmentRenderer) {
+                const timestampElement = segmentRenderer.querySelector('.segment-timestamp');
+                if (timestampElement) {
+                  timestamp = timestampElement.textContent.trim();
+                }
+              }
+
+              if (text) {
+                transcriptWithTimestamps.push({
+                  time: timestamp,
+                  text: text.trim()
+                });
+              }
             });
+
+            console.log('Extracted transcript with timestamps, segments:', transcriptWithTimestamps.length);
+
+            // Close the panel gently (wait a bit before closing)
+            setTimeout(() => {
+              transcriptButton.click();
+            }, 300);
+
+            if (transcriptWithTimestamps.length === 0) {
+              reject('No transcript data extracted');
+              return;
+            }
+
+            resolve(transcriptWithTimestamps);
+
+          } catch (e) {
+            console.error('Error extracting transcript:', e);
+            // Try to close panel
+            try {
+              transcriptButton.click();
+            } catch (closeErr) {
+              console.error('Could not close panel:', closeErr);
+            }
+            reject('Failed to extract transcript: ' + e.message);
           }
-        });
+        }, attempt === 0 ? 1500 : 1000); // First wait is 1.5s, retries wait 1s each
+      };
 
-        console.log('Extracted transcript with timestamps, segments:', transcriptWithTimestamps.length);
-
-        // Close the panel
-        transcriptButton.click();
-
-        if (transcriptWithTimestamps.length === 0) {
-          reject('No transcript data extracted');
-          return;
-        }
-
-        resolve(transcriptWithTimestamps);
-
-      } catch (e) {
-        console.error('Error extracting transcript:', e);
-        // Try to close panel
-        if (transcriptButton) {
-          transcriptButton.click();
-        }
-        reject('Failed to extract transcript: ' + e.message);
-      }
-    }, 2000); // Wait 2 seconds for panel to render (some videos need more time)
+      // Start the extraction process
+      waitForSegments(0);
     }
 
   } catch (error) {
