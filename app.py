@@ -3,8 +3,10 @@ YouTube Video Summarizer
 A simple Flask app that fetches YouTube transcripts and summarizes them using Groq AI
 """
 
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
 from googleapiclient.discovery import build
@@ -17,8 +19,19 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__, static_folder='static')
+app = Flask(__name__)
 CORS(app)
+
+# Initialize rate limiter
+# Global default: 100 requests per hour per IP
+# The /api/summarize-transcript endpoint applies a separate 20 requests per minute limit
+# Uses in-memory storage (suitable for Railway free tier)
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["100 per hour"],
+    storage_uri="memory://"
+)
 
 # Initialize Groq client
 groq_api_key = os.getenv('GROQ_API_KEY')
@@ -278,24 +291,6 @@ Transcript:
         raise Exception(f"Error generating summary: {str(e)}")
 
 
-@app.route('/')
-def index():
-    """Serve the main HTML page"""
-    return send_from_directory('static', 'index.html')
-
-
-@app.route('/style.css')
-def serve_css():
-    """Serve the CSS file"""
-    return send_from_directory('static', 'style.css')
-
-
-@app.route('/script.js')
-def serve_js():
-    """Serve the JavaScript file"""
-    return send_from_directory('static', 'script.js')
-
-
 @app.route('/api/summarize', methods=['POST'])
 def summarize_video():
     """
@@ -348,6 +343,7 @@ def summarize_video():
 
 
 @app.route('/api/summarize-transcript', methods=['POST'])
+@limiter.limit("20 per minute")  # Protect API key: max 20 summaries per minute per IP
 def summarize_transcript():
     """
     API endpoint for Chrome extension
