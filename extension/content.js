@@ -203,8 +203,9 @@ function extractFromPanel(resolve, reject) {
             }
 
             // If still no segments and we haven't retried enough, try again
-            if ((!segments || segments.length === 0) && attempt < 3) {
-              console.log(`No segments found yet, retry ${attempt + 1}/3...`);
+            // Use longer delay when panel is expanded but segments haven't loaded
+            if ((!segments || segments.length === 0) && attempt < 5) {
+              console.log(`No segments found yet, retry ${attempt + 1}/5... (waiting longer for YouTube to load)`);
               waitForSegments(attempt + 1);
               return;
             }
@@ -213,7 +214,7 @@ function extractFromPanel(resolve, reject) {
               console.error('No transcript segments found with any selector after retries');
               console.log('Panel HTML preview:', transcriptPanel.innerHTML.substring(0, 500));
               transcriptButton.click();
-              reject('No transcript segments found. This video may not have captions, or YouTube is still loading.');
+              reject('No transcript segments found. This video may not have captions, or try refreshing the page.');
               return;
             }
 
@@ -265,7 +266,7 @@ function extractFromPanel(resolve, reject) {
             }
             reject('Failed to extract transcript: ' + e.message);
           }
-        }, attempt === 0 ? 1500 : 1000); // First wait is 1.5s, retries wait 1s each
+        }, attempt === 0 ? 1500 : (attempt > 2 ? 1500 : 1000)); // First: 1.5s, attempts 1-2: 1s, attempts 3-5: 1.5s
       };
 
       // Start the extraction process
