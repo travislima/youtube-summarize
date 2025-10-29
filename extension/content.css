@@ -189,12 +189,48 @@
 .yt-summary-modal-footer {
   padding: 16px 24px;
   border-top: 1px solid #e0e0e0;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .yt-summary-modal-footer small {
   color: #888;
   font-size: 12px;
+}
+
+/* Copy buttons */
+.yt-copy-summary-btn,
+.yt-copy-transcript-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.yt-copy-summary-btn:hover,
+.yt-copy-transcript-btn:hover {
+  background: #5a67d8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.yt-copy-summary-btn:active,
+.yt-copy-transcript-btn:active {
+  transform: translateY(0);
+}
+
+.yt-copy-summary-btn svg,
+.yt-copy-transcript-btn svg {
+  flex-shrink: 0;
 }
 
 /* Notifications */
