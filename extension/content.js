@@ -327,7 +327,7 @@ async function handleSummarize() {
     }
 
     console.log('Summary received!');
-    showSummaryModal(data.summary, videoId);
+    showSummaryModal(data.summary, videoId, transcriptData);
 
   } catch (error) {
     // Handle both Error objects and string rejections
@@ -390,7 +390,7 @@ function convertMarkdownToHTML(markdown) {
   return html;
 }
 
-function showSummaryModal(summary, videoId) {
+function showSummaryModal(summary, videoId, transcriptData) {
   // Remove existing modal if any
   const existingModal = document.getElementById('yt-summary-modal');
   if (existingModal) {
@@ -414,7 +414,21 @@ function showSummaryModal(summary, videoId) {
         <div class="yt-summary-text">${formattedSummary}</div>
       </div>
       <div class="yt-summary-modal-footer">
-        <small>Video ID: ${videoId}</small>
+        <button class="yt-copy-summary-btn" title="Copy summary to clipboard">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          Copy Summary
+        </button>
+        <button class="yt-copy-transcript-btn" title="Copy transcript to clipboard">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          Copy Transcript
+        </button>
+        <small style="margin-left: auto;">Video ID: ${videoId}</small>
       </div>
     </div>
   `;
@@ -425,12 +439,39 @@ function showSummaryModal(summary, videoId) {
   const closeBtn = modal.querySelector('.yt-summary-close');
   closeBtn.addEventListener('click', () => modal.remove());
 
+  // Copy summary button handler
+  const copySummaryBtn = modal.querySelector('.yt-copy-summary-btn');
+  copySummaryBtn.addEventListener('click', () => {
+    copyToClipboard(summary, 'Summary copied to clipboard!');
+  });
+
+  // Copy transcript button handler
+  const copyTranscriptBtn = modal.querySelector('.yt-copy-transcript-btn');
+  copyTranscriptBtn.addEventListener('click', () => {
+    // Convert transcript array to readable text format
+    const transcriptText = transcriptData
+      .map(segment => `[${segment.time}] ${segment.text}`)
+      .join('\n');
+    copyToClipboard(transcriptText, 'Transcript copied to clipboard!');
+  });
+
   // Click outside to close
   modal.addEventListener('click', (e) => {
     if (e.target === modal) {
       modal.remove();
     }
   });
+}
+
+function copyToClipboard(text, successMessage) {
+  navigator.clipboard.writeText(text)
+    .then(() => {
+      showNotification(successMessage, 'info');
+    })
+    .catch(err => {
+      console.error('Failed to copy:', err);
+      showNotification('Failed to copy to clipboard', 'error');
+    });
 }
 
 function showNotification(message, type = 'info') {
