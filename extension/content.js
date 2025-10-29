@@ -390,6 +390,28 @@ function convertMarkdownToHTML(markdown) {
   return html;
 }
 
+function convertMarkdownToPlainText(markdown) {
+  // Convert markdown to clean, readable plain text
+  let text = markdown;
+
+  // Convert ## headers to uppercase sections with spacing
+  text = text.replace(/^## (.+)$/gm, '\n$1\n' + '='.repeat(50));
+
+  // Remove **bold** markdown but keep the text
+  text = text.replace(/\*\*(.+?)\*\*/g, '$1');
+
+  // Convert bullet points (* text) to simple bullets
+  text = text.replace(/^\* (.+)$/gm, '• $1');
+
+  // Clean up multiple newlines
+  text = text.replace(/\n{3,}/g, '\n\n');
+
+  // Trim whitespace
+  text = text.trim();
+
+  return text;
+}
+
 function showSummaryModal(summary, videoId, transcriptData) {
   // Remove existing modal if any
   const existingModal = document.getElementById('yt-summary-modal');
@@ -442,16 +464,18 @@ function showSummaryModal(summary, videoId, transcriptData) {
   // Copy summary button handler
   const copySummaryBtn = modal.querySelector('.yt-copy-summary-btn');
   copySummaryBtn.addEventListener('click', () => {
-    copyToClipboard(summary, 'Summary copied to clipboard!');
+    // Convert markdown summary to formatted plain text
+    const formattedText = convertMarkdownToPlainText(summary);
+    copyToClipboard(formattedText, 'Summary copied to clipboard!');
   });
 
   // Copy transcript button handler
   const copyTranscriptBtn = modal.querySelector('.yt-copy-transcript-btn');
   copyTranscriptBtn.addEventListener('click', () => {
-    // Convert transcript array to readable text format
+    // Convert transcript array to plain text (no timestamps)
     const transcriptText = transcriptData
-      .map(segment => `[${segment.time}] ${segment.text}`)
-      .join('\n');
+      .map(segment => segment.text)
+      .join(' ');
     copyToClipboard(transcriptText, 'Transcript copied to clipboard!');
   });
 
