@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Simple script to create placeholder icons for the Chrome extension
-Creates 16x16, 48x48, and 128x128 PNG icons with a gradient background
+Creates 16x16, 48x48, and 128x128 PNG icons with a gradient background and lightning bolt
 """
 
 try:
@@ -16,7 +16,7 @@ except ImportError:
     PIL_AVAILABLE = True
 
 def create_icon(size, filename):
-    """Create a simple gradient icon with 'YT' text"""
+    """Create a gradient icon with a lightning bolt symbol"""
     # Create image with gradient background
     img = Image.new('RGB', (size, size))
     draw = ImageDraw.Draw(img)
@@ -31,43 +31,56 @@ def create_icon(size, filename):
 
         draw.line([(0, y), (size, y)], fill=(r, g, b))
 
-    # Add white text "YT" - make it larger to fill more of the square
-    try:
-        # Try to use a nice bold font - increased from size//2 to 70% of icon size
-        font_size = int(size * 0.7)
-        # Try multiple font paths with bold variants (macOS, then Linux)
-        font_configs = [
-            ("/System/Library/Fonts/Helvetica.ttc", {"index": 1}),  # macOS Helvetica Bold (index 1 in TTC)
-            ("/System/Library/Fonts/HelveticaNeue.ttc", {"index": 1}),  # macOS Helvetica Neue Bold
-            ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", {}),  # Linux
+    # Draw lightning bolt
+    # Scale the bolt to 70% of icon size for good visibility
+    bolt_height = int(size * 0.7)
+    bolt_width = int(bolt_height * 0.5)  # Lightning bolt is typically narrower
+
+    # Center the bolt
+    offset_x = (size - bolt_width) // 2
+    offset_y = (size - bolt_height) // 2
+
+    # Define lightning bolt shape as a polygon (relative coordinates)
+    # Classic lightning bolt with 7 points
+    bolt_shape = [
+        (0.5, 0.0),   # Top center
+        (0.6, 0.4),   # Upper right
+        (0.95, 0.4),  # Right point
+        (0.4, 0.6),   # Middle left
+        (0.5, 1.0),   # Bottom tip
+        (0.35, 0.55), # Lower left
+        (0.0, 0.5),   # Left point
+    ]
+
+    # Scale and offset the points
+    bolt_points = [
+        (int(x * bolt_width + offset_x), int(y * bolt_height + offset_y))
+        for x, y in bolt_shape
+    ]
+
+    # Draw the lightning bolt with white fill
+    draw.polygon(bolt_points, fill='white')
+
+    # Add a subtle shadow/outline for depth (optional, for larger icons)
+    if size >= 48:
+        # Draw a slightly larger bolt in semi-transparent dark color first
+        shadow_offset = 2
+        shadow_points = [
+            (x + shadow_offset, y + shadow_offset)
+            for x, y in bolt_points
         ]
-        font = None
-        for font_path, kwargs in font_configs:
-            try:
-                font = ImageFont.truetype(font_path, font_size, **kwargs)
-                print(f"Using font: {font_path}")
-                break
-            except (OSError, IOError) as e:
-                # Font file not found or cannot be loaded, try next
-                continue
-        if font is None:
-            raise OSError("No bold font found in system paths")
-    except (OSError, IOError) as e:
-        # All font loading failed, fallback to default font
-        print(f"Warning: Could not load bold font ({e}), using default font")
-        font = ImageDraw.Draw(img).getfont()
+        shadow_img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+        shadow_draw = ImageDraw.Draw(shadow_img)
+        shadow_draw.polygon(shadow_points, fill=(0, 0, 0, 50))
 
-    text = "YT"
-    # Get text bounding box
-    bbox = draw.textbbox((0, 0), text, font=font)
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
+        # Composite shadow onto main image
+        img_rgba = img.convert('RGBA')
+        img_rgba = Image.alpha_composite(img_rgba, shadow_img)
+        img = img_rgba.convert('RGB')
 
-    # Center the text
-    x = (size - text_width) // 2
-    y = (size - text_height) // 2 - bbox[1]
-
-    draw.text((x, y), text, fill='white', font=font)
+        # Redraw the bolt on top
+        draw = ImageDraw.Draw(img)
+        draw.polygon(bolt_points, fill='white')
 
     # Save
     img.save(filename)
@@ -86,7 +99,7 @@ def main():
 
     os.chdir(extension_dir)
 
-    print("Creating extension icons...")
+    print("Creating QuickSum extension icons with lightning bolt...")
     create_icon(16, 'icon16.png')
     create_icon(48, 'icon48.png')
     create_icon(128, 'icon128.png')
