@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "YouTube Video Summarizer",
-  "version": "1.0",
-  "description": "Get AI-powered summaries of YouTube videos instantly",
+  "name": "AI Content Summarizer",
+  "version": "1.1",
+  "description": "Get AI-powered summaries of YouTube videos and articles instantly",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "scripting"
   ],
   "host_permissions": [
     "https://www.youtube.com/*",
