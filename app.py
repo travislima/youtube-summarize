@@ -395,6 +395,115 @@ def summarize_transcript():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/summarize-article', methods=['POST'])
+@limiter.limit("20 per minute")  # Same rate limit as transcript endpoint
+def summarize_article():
+    """
+    API endpoint for article summarization
+    Expects JSON: {"title": "...", "content": "...", "excerpt": "..."}
+    Returns JSON: {"summary": "..."}
+    """
+    try:
+        data = request.get_json()
+
+        if not data or 'content' not in data:
+            return jsonify({'error': 'No article content provided'}), 400
+
+        article_content = data['content']
+        article_title = data.get('title', 'Article')
+        article_excerpt = data.get('excerpt', '')
+
+        print(f"DEBUG: Received article summarization request")
+        print(f"DEBUG: Article title: {article_title}")
+        print(f"DEBUG: Content length: {len(article_content)} characters")
+
+        if not article_content or len(article_content) < 100:
+            return jsonify({'error': 'Article content is too short (minimum 100 characters)'}), 400
+
+        # Truncate very long articles (keep first 8000 chars to fit in context)
+        if len(article_content) > 8000:
+            article_content = article_content[:8000]
+            print(f"DEBUG: Article truncated to 8000 characters")
+
+        # Generate article summary
+        summary = summarize_article_content(article_title, article_content, article_excerpt)
+
+        print(f"DEBUG: Article summary generated successfully")
+
+        return jsonify({
+            'success': True,
+            'title': article_title,
+            'summary': summary,
+            'content_length': len(article_content)
+        })
+
+    except Exception as e:
+        print(f"DEBUG: Error in summarize_article: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+def summarize_article_content(title, content, excerpt=""):
+    """
+    Summarize article content using Groq AI
+    Optimized for blog posts, news articles, and long-form content
+    """
+    if not groq_client:
+        raise Exception("Groq API key not configured")
+
+    try:
+        excerpt_context = f"\n\nArticle Excerpt: {excerpt}" if excerpt else ""
+
+        # Create article-specific summarization prompt
+        prompt = f"""You are a professional content summarizer. Create a clear, actionable summary of this article.
+
+Article Title: "{title}"{excerpt_context}
+
+FORMAT YOUR RESPONSE EXACTLY AS SHOWN:
+
+## Overview
+[Write 2-3 sentences explaining what this article covers and why it matters. Be conversational and direct.]
+
+## Key Points
+* **Main idea 1**: One clear sentence explaining it
+* **Main idea 2**: One clear sentence explaining it
+* **Main idea 3**: One clear sentence explaining it
+[If the article has numbered items like "10 tips" or "5 strategies", LIST EVERY SINGLE ONE with a brief explanation]
+
+## Main Takeaways
+* [Most important insight or action - what should the reader remember or do?]
+* [Second key insight - be specific and practical]
+* [Third key insight - focus on value]
+
+CRITICAL RULES:
+- Write naturally, as if explaining to a friend
+- DON'T say "the article discusses" or "the author mentions" - just state the points directly
+- Use ## for section headers, * for bullets, **bold** for key terms
+- Be concise - one sentence per bullet point
+- If article has numbered items (tips, ways, steps), include ALL of them
+- Focus on actionable insights, not just descriptions
+
+Article Content:
+{content}"""
+
+        # Call Groq API
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.5,
+            max_tokens=1500,
+        )
+
+        return chat_completion.choices[0].message.content
+
+    except Exception as e:
+        raise Exception(f"Error generating article summary: {str(e)}")
+
+
 @app.route('/health')
 def health():
     """Health check endpoint"""

@@ -75,6 +75,85 @@
         .tip::before {
             content: "💡 ";
         }
+
+        /* Article mode styles */
+        #article-mode {
+            display: none;
+        }
+
+        .summarize-btn {
+            width: 100%;
+            padding: 12px;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 12px;
+        }
+
+        .summarize-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .summarize-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #article-status {
+            font-size: 12px;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            min-height: 20px;
+        }
+
+        #article-summary {
+            max-height: 400px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        #article-summary:empty {
+            display: none;
+        }
+
+        .summary-header {
+            font-weight: 700;
+            font-size: 14px;
+            margin: 12px 0 8px 0;
+        }
+
+        .summary-bullet {
+            margin: 4px 0 4px 12px;
+        }
+
+        .copy-btn {
+            width: 100%;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -82,27 +161,49 @@
         <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        YouTube Summarizer
+        AI Summarizer
     </h1>
 
-    <p>Get AI-powered summaries of YouTube videos instantly!</p>
+    <!-- YouTube Mode -->
+    <div id="youtube-mode">
+        <p>Get AI-powered summaries of YouTube videos instantly!</p>
 
-    <div class="instructions">
-        <strong>How to use:</strong>
-        <ol>
-            <li>Open any YouTube video</li>
-            <li>Look for the purple "Summarize" button below the video</li>
-            <li>Click it and wait 10-20 seconds</li>
-            <li>Read your AI-generated summary!</li>
-        </ol>
+        <div class="instructions">
+            <strong>How to use:</strong>
+            <ol>
+                <li>Open any YouTube video</li>
+                <li>Look for the purple "Summarize" button below the video</li>
+                <li>Click it and wait 10-20 seconds</li>
+                <li>Read your AI-generated summary!</li>
+            </ol>
+        </div>
+
+        <div class="tip">
+            Works on YouTube videos with transcripts available
+        </div>
     </div>
 
-    <div class="tip">
-        Make sure your local backend is running on http://localhost:8000
+    <!-- Article Mode -->
+    <div id="article-mode">
+        <p>Summarize this article with AI!</p>
+
+        <button id="summarize-article-btn" class="summarize-btn">
+            Summarize Article
+        </button>
+
+        <div id="article-status"></div>
+
+        <div id="article-summary"></div>
+
+        <div class="tip">
+            Works best on blog posts, news articles, and long-form content
+        </div>
     </div>
 
     <div class="status">
-        YouTube Summarizer v1.0
+        AI Summarizer v1.1
     </div>
+
+    <script src="popup.js"></script>
 </body>
 </html>
