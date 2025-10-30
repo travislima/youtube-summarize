@@ -26,7 +26,8 @@ A Chrome extension that instantly summarizes YouTube videos AND articles using A
 ### Quick Install (2 minutes)
 
 1. **Download the extension**
-   - [Click here to download](https://github.com/travislima/youtube-summarize/archive/refs/heads/claude/article-summarization-011CUPtbJtTXPSUcipiicHbo.zip)
+   - **Option A (Recommended):** [Download latest release](https://github.com/travislima/youtube-summarize/releases/latest) (once published)
+   - **Option B:** [Download from main branch](https://github.com/travislima/youtube-summarize/archive/refs/heads/claude/init-project-011CUPtbJtTXPSUcipiicHbo.zip)
    - Extract the ZIP file
 
 2. **Install in Chrome**
