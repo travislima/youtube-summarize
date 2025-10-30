@@ -353,6 +353,6 @@ Having issues or questions?
 
 ---
 
-**Happy Summarizing! ⚡**
+Happy Summarizing! ⚡
 
 Made with ❤️ for faster content consumption
