@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Simple script to create placeholder icons for the Chrome extension
-Creates 16x16, 48x48, and 128x128 PNG icons with a gradient background and lightning bolt
+Creates 16x16, 48x48, and 128x128 PNG icons with a gradient background
 """
 
 try:
@@ -41,15 +41,15 @@ def create_icon(size, filename):
     offset_y = (size - bolt_height) // 2
 
     # Define lightning bolt shape as a polygon (relative coordinates)
-    # Classic lightning bolt with 7 points
+    # Classic zigzag lightning bolt with 7 points
     bolt_shape = [
-        (0.5, 0.0),   # Top center
-        (0.6, 0.4),   # Upper right
-        (0.95, 0.4),  # Right point
-        (0.4, 0.6),   # Middle left
-        (0.5, 1.0),   # Bottom tip
-        (0.35, 0.55), # Lower left
-        (0.0, 0.5),   # Left point
+        (0.45, 0.0),   # Top left
+        (0.75, 0.0),   # Top right
+        (0.45, 0.45),  # Middle right (zigzag point)
+        (0.65, 0.45),  # Middle right extension
+        (0.25, 1.0),   # Bottom tip (sharp point)
+        (0.5, 0.55),   # Middle left (zigzag point)
+        (0.3, 0.55),   # Middle left extension
     ]
 
     # Scale and offset the points
