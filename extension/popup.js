@@ -40,6 +40,8 @@ function showArticleMode(tabId) {
       summaryDiv.textContent = '';
 
       // Inject Readability and extract article content
+      // Uses activeTab permission: when user clicks extension icon, we get
+      // temporary access to inject scripts into the current tab
       const results = await chrome.scripting.executeScript({
         target: { tabId: tabId },
         files: ['Readability.js']
