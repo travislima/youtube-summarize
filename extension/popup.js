@@ -1,5 +1,6 @@
 // Popup script for article summarization
 const API_URL = 'https://web-production-f6684.up.railway.app';
+const FETCH_TIMEOUT_MS = 30000; // 30 seconds for AI summarization
 
 // Get current tab and determine if it's YouTube or an article page
 chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
@@ -42,16 +43,49 @@ function showArticleMode(tabId) {
       // Inject Readability and extract article content
       // Uses activeTab permission: when user clicks extension icon, we get
       // temporary access to inject scripts into the current tab
-      const results = await chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        files: ['Readability.js']
-      });
+      let readabilityResults;
+      try {
+        readabilityResults = await chrome.scripting.executeScript({
+          target: { tabId: tabId },
+          files: ['Readability.js']
+        });
+      } catch (injectionError) {
+        console.error('Readability.js injection failed:', injectionError);
+        throw new Error('Failed to inject article reader. Please try reloading the page.');
+      }
+
+      // Validate injection succeeded before proceeding
+      if (!readabilityResults || !Array.isArray(readabilityResults) || readabilityResults.length === 0) {
+        console.error('Readability.js injection returned invalid result:', readabilityResults);
+        throw new Error('Article reader failed to load. Please try again.');
+      }
+
+      // Check for injection errors
+      const injectionResult = readabilityResults[0];
+      if (injectionResult.error) {
+        console.error('Readability.js injection error:', injectionResult.error);
+        throw new Error('Article reader encountered an error. This page may not be compatible.');
+      }
+
+      console.log('Readability.js injected successfully');
 
       // Execute article extraction
-      const extractionResults = await chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        func: extractArticleContent
-      });
+      let extractionResults;
+      try {
+        extractionResults = await chrome.scripting.executeScript({
+          target: { tabId: tabId },
+          func: extractArticleContent
+        });
+      } catch (extractionError) {
+        console.error('Article extraction failed:', extractionError);
+        throw new Error('Failed to extract article content. This might not be an article page.');
+      }
+
+      // Validate extraction results
+      if (!extractionResults || !Array.isArray(extractionResults) || extractionResults.length === 0) {
+        console.error('Article extraction returned invalid result:', extractionResults);
+        throw new Error('Article extraction failed. Please try again.');
+      }
 
       const articleData = extractionResults[0].result;
 
@@ -63,32 +97,62 @@ function showArticleMode(tabId) {
       summarizeBtn.textContent = 'Summarizing...';
       statusDiv.textContent = `Found article: "${articleData.title}"`;
 
-      // Send to backend for summarization
-      const response = await fetch(`${API_URL}/api/summarize-article`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          title: articleData.title,
-          content: articleData.textContent,
-          excerpt: articleData.excerpt
-        })
-      });
+      // Send to backend for summarization with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, FETCH_TIMEOUT_MS);
+
+      let response;
+      try {
+        response = await fetch(`${API_URL}/api/summarize-article`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title: articleData.title,
+            content: articleData.textContent,
+            excerpt: articleData.excerpt
+          }),
+          signal: controller.signal
+        });
+
+        // Clear timeout on successful response
+        clearTimeout(timeoutId);
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+
+        // Handle timeout specifically
+        if (fetchError.name === 'AbortError') {
+          throw new Error(`Summarization timed out after ${FETCH_TIMEOUT_MS / 1000} seconds. The article might be too long or the server is slow. Please try again.`);
+        }
+
+        // Handle network errors
+        throw new Error(`Network error: ${fetchError.message}. Please check your connection.`);
+      }
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+        throw new Error(`Server error: ${response.status}. Please try again later.`);
       }
 
       const data = await response.json();
 
-      // Display summary
-      summaryDiv.innerHTML = formatSummary(data.summary);
+      // Display summary (sanitized to prevent XSS)
+      // DOMPurify sanitizes HTML before inserting to prevent malicious scripts
+      const formattedSummary = formatSummary(data.summary);
+      const sanitizedSummary = DOMPurify.sanitize(formattedSummary, {
+        ALLOWED_TAGS: ['div', 'strong', 'br'],
+        ALLOWED_ATTR: ['class'],
+        KEEP_CONTENT: true
+      });
+      summaryDiv.innerHTML = sanitizedSummary;
+
       statusDiv.textContent = 'Summary complete!';
       summarizeBtn.textContent = 'Summarize Article';
       summarizeBtn.disabled = false;
 
-      // Add copy button
+      // Add copy button (created safely with createElement)
       const copyBtn = document.createElement('button');
       copyBtn.className = 'copy-btn';
       copyBtn.textContent = 'Copy Summary';
@@ -103,6 +167,7 @@ function showArticleMode(tabId) {
     } catch (error) {
       console.error('Summarization error:', error);
       statusDiv.textContent = `Error: ${error.message}`;
+      statusDiv.style.color = '#ff6b6b'; // Red color for errors
       summarizeBtn.textContent = 'Summarize Article';
       summarizeBtn.disabled = false;
     }
@@ -112,6 +177,12 @@ function showArticleMode(tabId) {
 // Function to extract article content (runs in page context)
 function extractArticleContent() {
   try {
+    // Check if Readability is available (it should be if injection succeeded)
+    if (typeof Readability === 'undefined') {
+      console.error('Readability is not defined - injection may have failed');
+      return null;
+    }
+
     // Clone the document to avoid modifying the actual page
     const documentClone = document.cloneNode(true);
 
@@ -139,6 +210,7 @@ function extractArticleContent() {
 }
 
 // Format summary with markdown-like styling
+// Returns HTML string that will be sanitized by DOMPurify before insertion
 function formatSummary(summary) {
   let formatted = summary;
 
